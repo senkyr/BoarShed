@@ -87,8 +87,8 @@
   .cell.over{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
   .pcard{border:1px solid var(--line);border-left:4px solid var(--f);border-radius:7px;
     background:color-mix(in srgb,var(--f) 16%,var(--surface));padding:4px 6px;overflow:hidden;
-    display:flex;flex-direction:column;cursor:grab;position:relative}
-  .pcard .subj{font-weight:650;font-size:12px;line-height:1.15}
+    display:flex;flex-direction:column;cursor:grab;position:relative;overflow-wrap:anywhere}
+  .pcard .subj{font-weight:650;font-size:12px;line-height:1.15;padding-right:16px}
   .pcard .sub{font-size:10px;color:var(--ink-soft)}
   .pcard.conflict{border-color:var(--bad);background:var(--bad-bg);box-shadow:inset 0 0 0 1px var(--bad)}
   .pcard .x{position:absolute;top:2px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
@@ -510,43 +510,57 @@ function renderSchedule(){
     // popisky hodin
     for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:p+1}},p+"."));
 
-    // mapa pokrytí buněk umístěnými kartičkami aktivní třídy
-    const cover={}; // "d|p" -> {id, top:bool}
-    placedCardsFor(c=>c.class===S.activeClass).filter(x=>x.pl.w===w).forEach(x=>{
-      for(let k=0;k<x.c.duration;k++) cover[x.pl.d+"|"+(x.pl.p+k)]={id:x.id,top:k===0};
-    });
-
+    // POZADÍ: vykresli VŠECHNY buňky (drop zóny). Kartičky se kreslí přes ně.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
-      const cov=cover[d+"|"+p];
-      if(cov){
-        if(!cov.top) continue; // pokryto blokem výš
-        const c=card(cov.id), conf=reasons[cov.id];
-        const pc=el("div",{
-          class:"pcard"+(conf?" conflict":""), draggable:"true",
-          style:{"--f":fieldVar(c.field),gridColumn:d+2,gridRow:(p+1)+" / span "+c.duration},
-          title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")",
-          onclick:ev=>{ if(ev.target.classList.contains("x"))return; pickUp(cov.id); },
-          ondragstart:ev=>{ev.dataTransfer.setData("text/plain",cov.id);S.selected=cov.id;}
-        },
-          el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(cov.id)},"×"),
-          el("div",{class:"subj"},c.subject),
-          el("div",{class:"sub"},c.teacher+" · "+c.room),
-          el("div",{class:"sub"},c.building)
-        );
-        grid.append(pc);
-      }else{
-        const droppable=S.selected && fits(card(S.selected),p);
-        const cell=el("div",{
-          class:"cell"+(droppable?" drop":""),
-          style:{gridColumn:d+2,gridRow:p+1},
-          onclick:()=>{ if(S.selected) tryPlace(S.selected,w,d,p); },
-          ondragover:ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");},
-          ondragleave:ev=>ev.currentTarget.classList.remove("over"),
-          ondrop:ev=>{ev.preventDefault();const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);}
-        });
-        grid.append(cell);
-      }
+      const droppable=S.selected && fits(card(S.selected),p);
+      grid.append(el("div",{
+        class:"cell"+(droppable?" drop":""),
+        style:{gridColumn:d+2,gridRow:p+1},
+        onclick:()=>{ if(S.selected) tryPlace(S.selected,w,d,p); },
+        ondragover:ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");},
+        ondragleave:ev=>ev.currentTarget.classList.remove("over"),
+        ondrop:ev=>{ev.preventDefault();ev.currentTarget.classList.remove("over");const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);}
+      }));
     }
+
+    // umístěné kartičky aktivní třídy v tomto týdnu
+    const placed=placedCardsFor(c=>c.class===S.activeClass).filter(x=>x.pl.w===w);
+
+    // PRUHY (lanes): překrývající se bloky v jednom dni dostanou různý pruh a
+    // vykreslí se vedle sebe, takže se nikdy navzájem neschovají. (Dřív poslední
+    // zápis do "cover" mapy přepsal předchozí a překrytá kartička úplně zmizela.)
+    const lane={}, lanesInDay={};
+    for(let d=0;d<DAYS.length;d++){
+      const day=placed.filter(x=>x.pl.d===d)
+        .map(x=>({id:x.id,s:x.pl.p,e:x.pl.p+x.c.duration-1}))
+        .sort((a,b)=>a.s-b.s||a.e-b.e);
+      const ends=[]; // konec posledního bloku v každém pruhu
+      day.forEach(it=>{
+        let L=ends.findIndex(e=>e<it.s);
+        if(L<0){ L=ends.length; ends.push(0); }
+        ends[L]=it.e; lane[it.id]=L;
+      });
+      lanesInDay[d]=Math.max(1,ends.length);
+    }
+
+    placed.forEach(x=>{
+      const c=x.c, conf=reasons[x.id], n=lanesInDay[x.pl.d], L=lane[x.id];
+      const st={"--f":fieldVar(c.field),gridColumn:x.pl.d+2,gridRow:(x.pl.p+1)+" / span "+c.duration};
+      if(n>1){ st.justifySelf="start"; st.width="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
+      if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
+      const pc=el("div",{
+        class:"pcard"+(conf?" conflict":""), draggable:"true", style:st,
+        title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")",
+        onclick:ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); },
+        ondragstart:ev=>{ev.dataTransfer.setData("text/plain",x.id);S.selected=x.id;}
+      },
+        el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"),
+        el("div",{class:"subj"},c.subject),
+        el("div",{class:"sub"},c.teacher+" · "+c.room),
+        el("div",{class:"sub"},c.building)
+      );
+      grid.append(pc);
+    });
     wrap.append(grid); box.append(wrap);
   });
 }
@@ -668,6 +682,7 @@ function loadLevel(id,doAutoload){
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
   render();
+  setStatus("Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).");
   if(doAutoload!==false) loadAutosave();
 }
 
