@@ -45,7 +45,11 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
   `renderTabs` kreslí přepínač pohledu + záložky entit; `renderSchedule` umí všechny
   tři pohledy a překrývající se kartičky řeší „pruhy" (lanes), aby se neschovaly.
-  Překresluje se celé (jednoduchost nad výkonem; při ~16 kartách to stačí).
+  **Orientace** dle šířky (`isHorizontal()`, breakpoint 820 px): desktop „na šířku"
+  (dny = řádky, hodiny = sloupce), úzký displej transponovaně (hodiny = řádky, dolů).
+  Pruhy se proto skládají kolmo na osu hodin (vodorovně vs. svisle). Při překlopení
+  orientace překresluje listener na `resize`. Překresluje se celé (jednoduchost nad
+  výkonem; při ~16 kartách to stačí).
 - **el(tag, props, ...kids)** — mini-helper na DOM, bezpečný vůči diakritice.
 
 ### Typy herních cílů (`evalGoal`)
@@ -78,8 +82,9 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
 - **Lokálně:** otevři `index.html` v prohlížeči (žádný server není potřeba).
 - **Smoke test po zásahu:** projdi obě demo úrovně — umísti kartu klikem i tahem,
   vyvolej konflikt (musí zčervenat + tooltip), překryj dvě karty stejné třídy (musí
-  být vidět vedle sebe, ne zmizet), přepni pohled Třídy/Učitelé/Učebny (učitel/učebna
-  jen pro čtení), spusť „Náhodně" a „Řešitelnost?", ulož/načti řetězec, přepni motiv.
+  být vidět vedle sebe / nad sebou, ne zmizet), přepni pohled Třídy/Učitelé/Učebny
+  (učitel/učebna jen pro čtení), zúži okno pod ~820 px (rozvrh se překlopí na hodiny
+  dolů), spusť „Náhodně" a „Řešitelnost?", ulož/načti řetězec, přepni motiv.
   Žádné chyby v konzoli.
 - **Po úpravě dat/cílů levelu** spusť „Řešitelnost?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.

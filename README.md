@@ -19,6 +19,8 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
 ## Funkce
 
 - Tři sloupce: **Kartičky / Rozvrh / Požadavky**, responzivní (pod 1100 px nad sebe).
+- **Rozvrh „na šířku" na desktopu** (dny v řádcích, hodiny ve sloupcích); na úzkém
+  displeji se překlopí na hodiny pod sebou.
 - Umístění kartičky **kliknutím** i **drag-and-drop**; bloky 1/2/3 h.
 - **Pohledy Třídy / Učitelé / Učebny** — hraje se v pohledu po třídách, učitelský
   a učebnový pohled jsou jen pro čtení (kontrola konfliktů).

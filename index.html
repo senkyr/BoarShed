@@ -51,6 +51,7 @@
   .col-head{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
   .col-head h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
   .col-body{padding:12px 14px}
+  #schedule{overflow-x:auto}
 
   #colPalette{flex:0 0 230px}
   #colSchedule{flex:1 1 auto;min-width:0}
@@ -570,28 +571,60 @@ function renderTabs(){
   if(S.view!=="class") box.append(el("span",{class:"ro-note"},"jen pro čtení"));
 }
 
+// Desktop ("na šířku"): dny v řádcích, hodiny ve sloupcích.
+// Úzký displej: transponováno (hodiny v řádcích, dolů). Při změně se překresluje.
+function isHorizontal(){ return window.matchMedia("(min-width:820px)").matches; }
+
 function renderSchedule(){
   const box=document.getElementById("schedule"); box.textContent="";
   const reasons=computeConflicts();
+  const horiz=isHorizontal();
+  const playing=S.view==="class"; // jen v pohledu po třídách se umisťuje
   LVL.weeks.forEach((wname,w)=>{
     const wrap=el("div",{class:"week"});
     if(LVL.weeks.length>1) wrap.append(el("div",{class:"week-title"},wname+" týden"));
-    const grid=el("div",{class:"grid",style:{
-      gridTemplateColumns:"38px repeat(5,1fr)",
-      gridTemplateRows:"24px repeat("+LVL.periods+",minmax(46px,auto))"
-    }});
-    // hlavička dní
-    grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
-    DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gh",style:{gridColumn:d+2,gridRow:1}},dn)));
-    // popisky hodin
-    for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:p+1}},p+"."));
 
-    const playing = S.view==="class"; // jen v pohledu po třídách se umisťuje
+    // umístěné kartičky vybrané entity (třída / učitel / učebna) v tomto týdnu
+    const placed=placedCardsFor(c=>entityOf(c,S.view)===S.active).filter(x=>x.pl.w===w);
 
-    // POZADÍ: vykresli VŠECHNY buňky. V herním pohledu jsou to drop zóny.
+    // PRUHY (lanes): překrývající se bloky v jednom dni dostanou různý pruh, aby se
+    // nikdy neschovaly. Ve vodorovném rozvrhu se pruhy skládají svisle, ve svislém vodorovně.
+    const lane={}, lanesInDay={};
+    for(let d=0;d<DAYS.length;d++){
+      const day=placed.filter(x=>x.pl.d===d)
+        .map(x=>({id:x.id,s:x.pl.p,e:x.pl.p+x.c.duration-1}))
+        .sort((a,b)=>a.s-b.s||a.e-b.e);
+      const ends=[]; // konec posledního bloku v každém pruhu
+      day.forEach(it=>{ let L=ends.findIndex(e=>e<it.s); if(L<0){L=ends.length;ends.push(0);} ends[L]=it.e; lane[it.id]=L; });
+      lanesInDay[d]=Math.max(1,ends.length);
+    }
+
+    // MŘÍŽKA — osy podle orientace
+    let grid;
+    if(horiz){ // dny = řádky, hodiny = sloupce; řádek dne se zvětší podle počtu pruhů
+      const rows=[]; for(let d=0;d<DAYS.length;d++) rows.push("minmax("+(46*lanesInDay[d])+"px,auto)");
+      grid=el("div",{class:"grid",style:{
+        gridTemplateColumns:"40px repeat("+LVL.periods+",minmax(54px,1fr))",
+        gridTemplateRows:"24px "+rows.join(" ")
+      }});
+      grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
+      for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gh",style:{gridColumn:p+1,gridRow:1}},p+"."));
+      DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:d+2}},dn)));
+    }else{ // dny = sloupce, hodiny = řádky (transponováno pro úzký displej)
+      grid=el("div",{class:"grid",style:{
+        gridTemplateColumns:"38px repeat(5,1fr)",
+        gridTemplateRows:"24px repeat("+LVL.periods+",minmax(46px,auto))"
+      }});
+      grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
+      DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gh",style:{gridColumn:d+2,gridRow:1}},dn)));
+      for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:p+1}},p+"."));
+    }
+
+    // POZADÍ: všechny buňky. V herním pohledu jsou to drop zóny.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
       const droppable=playing && S.selected && fits(card(S.selected),p);
-      const props={ class:"cell"+(droppable?" drop":""), style:{gridColumn:d+2,gridRow:p+1} };
+      const props={ class:"cell"+(droppable?" drop":""),
+        style:{gridColumn:horiz?p+1:d+2, gridRow:horiz?d+2:p+1} };
       if(playing){
         props.onclick=()=>{ if(S.selected) tryPlace(S.selected,w,d,p); };
         props.ondragover=ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");};
@@ -601,31 +634,19 @@ function renderSchedule(){
       grid.append(el("div",props));
     }
 
-    // umístěné kartičky vybrané entity (třída / učitel / učebna) v tomto týdnu
-    const placed=placedCardsFor(c=>entityOf(c,S.view)===S.active).filter(x=>x.pl.w===w);
-
-    // PRUHY (lanes): překrývající se bloky v jednom dni dostanou různý pruh a
-    // vykreslí se vedle sebe, takže se nikdy navzájem neschovají. (Dřív poslední
-    // zápis do "cover" mapy přepsal předchozí a překrytá kartička úplně zmizela.)
-    const lane={}, lanesInDay={};
-    for(let d=0;d<DAYS.length;d++){
-      const day=placed.filter(x=>x.pl.d===d)
-        .map(x=>({id:x.id,s:x.pl.p,e:x.pl.p+x.c.duration-1}))
-        .sort((a,b)=>a.s-b.s||a.e-b.e);
-      const ends=[]; // konec posledního bloku v každém pruhu
-      day.forEach(it=>{
-        let L=ends.findIndex(e=>e<it.s);
-        if(L<0){ L=ends.length; ends.push(0); }
-        ends[L]=it.e; lane[it.id]=L;
-      });
-      lanesInDay[d]=Math.max(1,ends.length);
-    }
-
+    // KARTIČKY — blok o `duration` hodinách se táhne podle orientace (doprava / dolů)
     placed.forEach(x=>{
-      const c=x.c, conf=reasons[x.id], n=lanesInDay[x.pl.d], L=lane[x.id];
-      const st={"--f":fieldVar(c.field),gridColumn:x.pl.d+2,gridRow:(x.pl.p+1)+" / span "+c.duration};
-      if(n>1){ st.justifySelf="start"; st.width="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
-      if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
+      const c=x.c, conf=reasons[x.id], n=lanesInDay[x.pl.d], L=lane[x.id], span="span "+c.duration;
+      const st={"--f":fieldVar(c.field)};
+      if(horiz){
+        st.gridRow=x.pl.d+2; st.gridColumn=(x.pl.p+1)+" / "+span;
+        if(n>1){ st.alignSelf="start"; st.height="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
+        if(L>0){ st.transform="translateY(calc("+L+" * (100% + 4px)))"; }
+      }else{
+        st.gridColumn=x.pl.d+2; st.gridRow=(x.pl.p+1)+" / "+span;
+        if(n>1){ st.justifySelf="start"; st.width="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
+        if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
+      }
       // sekundární popisek nezobrazuje to, podle čeho je pohled filtrovaný
       const sub = S.view==="teacher" ? c.class+" · "+c.room
                 : S.view==="room"    ? c.class+" · "+c.teacher
@@ -642,13 +663,12 @@ function renderSchedule(){
         props.title+=" — klikni pro přechod do pohledu třídy "+c.class;
         props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
       }
-      const pc=el("div",props,
+      grid.append(el("div",props,
         playing?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
         el("div",{class:"subj"},c.subject),
         el("div",{class:"sub"},sub),
         el("div",{class:"sub"},c.building)
-      );
-      grid.append(pc);
+      ));
     });
     wrap.append(grid); box.append(wrap);
   });
@@ -806,6 +826,11 @@ window.addEventListener("DOMContentLoaded",async()=>{
     setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
 
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&S.selected){S.selected=null;render();setStatus("Výběr zrušen.");}});
+
+  // překresli rozvrh při změně orientace (desktop na šířku ↔ úzký displej dolů).
+  // Hlídá se přes resize (spolehlivější než matchMedia), překreslí jen při PŘEKLOPENÍ.
+  let lastHoriz=isHorizontal();
+  window.addEventListener("resize",()=>{ const h=isHorizontal(); if(h!==lastHoriz){ lastHoriz=h; render(); } });
 
   loadLevel(LEVELS[0].id);
 });
