@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skládání rozvrhu</title>
+<style>
+  /* ---------- TÉMA / PROMĚNNÉ ---------- */
+  :root{
+    --bg:#f4f3ef; --surface:#ffffff; --surface-2:#faf9f6; --line:#e2ded6;
+    --ink:#26221c; --ink-soft:#6c655a; --accent:#8a1c34; --accent-soft:#b34a5f;
+    --ok:#1e7d4f; --ok-bg:#e7f4ec; --bad:#c12d3a; --bad-bg:#fbe9e9;
+    --it:#3b5bdb; --ele:#c2640a; --str:#0f766e; --gen:#6d5acd;
+    --shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.05);
+    --radius:10px;
+  }
+  html[data-theme="dark"]{
+    --bg:#15161a; --surface:#1d1f25; --surface-2:#23262d; --line:#34373f;
+    --ink:#e8e6e1; --ink-soft:#9b9890; --accent:#e0708a; --accent-soft:#c75a73;
+    --ok:#4ec98a; --ok-bg:#16352a; --bad:#f08a93; --bad-bg:#3a1f22;
+    --it:#7e95ff; --ele:#eaa14f; --str:#4ec3b6; --gen:#a596f0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);
+    color:var(--ink);border-radius:8px;padding:7px 12px;transition:.12s}
+  button:hover{border-color:var(--accent-soft)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.primary:hover{filter:brightness(1.06)}
+  button.ghost{background:transparent}
+  select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+  .muted{color:var(--ink-soft)}
+
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+  header .brand{display:flex;flex-direction:column;line-height:1.15}
+  header .brand b{font-size:18px}
+  header .brand span{font-size:12px;color:var(--ink-soft)}
+  header .spacer{flex:1}
+  header .ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .wrap{display:flex;gap:14px;align-items:flex-start;padding:14px 18px 80px;max-width:1500px;margin:0 auto}
+  .col{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .col-head{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .col-head h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+  .col-body{padding:12px 14px}
+
+  #colPalette{flex:0 0 230px}
+  #colSchedule{flex:1 1 auto;min-width:0}
+  #colGoals{flex:0 0 280px}
+  @media(max-width:1100px){.wrap{flex-direction:column}
+    #colPalette,#colGoals{flex:1 1 auto;width:100%}}
+
+  /* ---------- KARTIČKY ---------- */
+  .palette{display:flex;flex-direction:column;gap:8px}
+  .card{position:relative;border:1px solid var(--line);border-left:4px solid var(--f);
+    border-radius:8px;padding:6px 8px;background:color-mix(in srgb,var(--f) 12%,var(--surface));
+    cursor:grab;user-select:none}
+  .card:active{cursor:grabbing}
+  .card .subj{font-weight:650;font-size:13px}
+  .card .meta{font-size:11px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .card .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:99px;
+    background:color-mix(in srgb,var(--f) 22%,var(--surface));border:1px solid color-mix(in srgb,var(--f) 35%,var(--surface))}
+  .card.sel{outline:2px solid var(--accent);outline-offset:1px}
+  .card.dur2::after,.card.dur3::after{content:attr(data-dur);position:absolute;top:4px;right:6px;
+    font-size:10px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+  .palette-empty{font-size:13px;color:var(--ink-soft);padding:8px 2px}
+
+  /* ---------- ROZVRH ---------- */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-size:13px}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .week{margin-top:14px}
+  .week-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:6px}
+  .grid{display:grid;gap:4px}
+  .gh{font-size:12px;color:var(--ink-soft);text-align:center;align-self:center;padding:2px 0;font-weight:600}
+  .gp{font-size:11px;color:var(--ink-soft);text-align:right;padding-right:6px;align-self:center}
+  .cell{border:1px dashed var(--line);border-radius:7px;min-height:46px;background:var(--surface-2)}
+  .cell.drop{border-color:var(--accent-soft);background:color-mix(in srgb,var(--accent) 7%,var(--surface-2))}
+  .cell.over{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+  .pcard{border:1px solid var(--line);border-left:4px solid var(--f);border-radius:7px;
+    background:color-mix(in srgb,var(--f) 16%,var(--surface));padding:4px 6px;overflow:hidden;
+    display:flex;flex-direction:column;cursor:grab;position:relative}
+  .pcard .subj{font-weight:650;font-size:12px;line-height:1.15}
+  .pcard .sub{font-size:10px;color:var(--ink-soft)}
+  .pcard.conflict{border-color:var(--bad);background:var(--bad-bg);box-shadow:inset 0 0 0 1px var(--bad)}
+  .pcard .x{position:absolute;top:2px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
+    border-radius:5px;font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line)}
+  .pcard .x:hover{color:var(--bad);border-color:var(--bad)}
+
+  /* ---------- POŽADAVKY ---------- */
+  .score{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .score b{font-size:26px}
+  .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:4px 0 12px}
+  .bar>div{height:100%;background:var(--ok);transition:width .25s}
+  .goal{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line)}
+  .goal:first-child{border-top:0}
+  .dot{flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-soft);margin-top:1px;
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+  .goal.met .dot{background:var(--ok);border-color:var(--ok)}
+  .goal .txt{font-size:13px}
+  .goal.met .txt{color:var(--ink-soft)}
+  .conf-line{margin:10px 0 4px;padding:8px 10px;border-radius:8px;font-size:13px}
+  .conf-line.bad{background:var(--bad-bg);color:var(--bad)}
+  .conf-line.ok{background:var(--ok-bg);color:var(--ok)}
+  .win{margin-top:12px;padding:12px;border-radius:8px;background:var(--ok-bg);color:var(--ok);font-weight:650;text-align:center}
+
+  /* ---------- LIŠTA / STAV ---------- */
+  .toolbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+    display:flex;gap:10px;align-items:center;padding:9px 18px;z-index:30;flex-wrap:wrap}
+  .status{font-size:13px;color:var(--ink-soft);min-height:18px}
+
+  /* ---------- MODAL ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    padding:18px;max-width:460px;width:calc(100% - 36px)}
+  .modal h3{margin-bottom:8px}
+  .modal p{margin:0 0 14px;color:var(--ink-soft);font-size:14px}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  textarea{width:100%;min-height:90px;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+    border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
+  .slot-row{display:flex;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+  .slot-row .name{flex:1;font-size:13px}
+  .legend{font-size:11px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>Skládání rozvrhu</b><span id="lvlDesc">—</span></div>
+  <div class="spacer"></div>
+  <div class="ctrls">
+    <label class="muted" style="font-size:12px">Level</label>
+    <select id="levelSel"></select>
+    <button id="saveBtn" class="ghost">Uložit / Načíst</button>
+    <button id="themeBtn" class="ghost" title="Světlý / tmavý režim">◐</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="col" id="colPalette">
+    <div class="col-head"><h2>Kartičky</h2></div>
+    <div class="col-body"><div class="palette" id="palette"></div></div>
+  </section>
+
+  <section class="col" id="colSchedule">
+    <div class="col-head"><h2>Rozvrh</h2><div class="tabs" id="tabs" style="margin-left:auto"></div></div>
+    <div class="col-body" id="schedule"></div>
+  </section>
+
+  <section class="col" id="colGoals">
+    <div class="col-head"><h2>Požadavky</h2></div>
+    <div class="col-body" id="goals"></div>
+  </section>
+</div>
+
+<div class="toolbar">
+  <button id="clearBtn">Smazat rozvrh</button>
+  <button id="randomBtn" class="primary">Náhodně rozmístit</button>
+  <div class="spacer" style="flex:1"></div>
+  <div class="status" id="status">Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).</div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   DATA — LEVELY
+   Každá kartička = vyučovaná hodina: class (třída), subject (předmět),
+   field IT|ELE|STR (obor → barva), teacher (učitel), room (učebna),
+   building (budova), duration (počet hodin = výška bloku).
+   Cíle (goals) = "měkké" herní požadavky, hodnotí se do skóre.
+   Tvrdé požadavky (konflikty učitel/učebna/třída, délka bloku, rozsah dne)
+   jsou zapečené v enginu níž.
+   ===================================================================== */
+const DAYS=["Po","Út","St","Čt","Pá"];
+
+const LEVELS=[
+  {
+    id:"l1", name:"1 · Rozjezd",
+    desc:"Jedna třída, jeden týden, jedna budova. Rozehřívačka.",
+    weeks:["Lichý"], periods:6,
+    cards:[
+      {id:"a", class:"1.A", subject:"Programování", field:"IT", teacher:"Petr", room:"U1", building:"Š101", duration:2},
+      {id:"b", class:"1.A", subject:"Algoritmy",    field:"IT", teacher:"Petr", room:"U1", building:"Š101", duration:1},
+      {id:"c", class:"1.A", subject:"Databáze",     field:"IT", teacher:"Eva",  room:"U2", building:"Š101", duration:2},
+      {id:"d", class:"1.A", subject:"Web",          field:"IT", teacher:"Eva",  room:"L1", building:"Š101", duration:1},
+      {id:"e", class:"1.A", subject:"Sítě",         field:"IT", teacher:"Jan",  room:"L1", building:"Š101", duration:2},
+      {id:"f", class:"1.A", subject:"Hardware",     field:"IT", teacher:"Jan",  room:"U2", building:"Š101", duration:1},
+    ],
+    goals:[
+      {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
+      {id:"g2", type:"subject_time", p:{subject:"Programování", maxPeriod:4}, label:"Programování (blok) začíná do 4. hodiny."},
+      {id:"g3", type:"teacher_free_day", p:{teacher:"Jan"}, label:"Jan má jeden den volno."},
+      {id:"g4", type:"class_no_gaps", p:{cls:"1.A"}, label:"1.A nemá v rozvrhu okno."},
+      {id:"g5", type:"subject_day", p:{subject:"Sítě", day:0}, label:"Sítě jsou v pondělí."},
+    ]
+  },
+  {
+    id:"l2", name:"2 · Dva týdny, dvě budovy",
+    desc:"Lichý i sudý týden, dvě třídy, sdílené učebny — pozor na konflikty.",
+    weeks:["Lichý","Sudý"], periods:6,
+    cards:[
+      {id:"a", class:"1.A", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:2},
+      {id:"b", class:"1.A", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:1},
+      {id:"c", class:"1.A", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"L1", building:"H59",  duration:2},
+      {id:"d", class:"1.A", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D1", building:"H59",  duration:1},
+      {id:"e", class:"2.B", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:1},
+      {id:"f", class:"2.B", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:2},
+      {id:"g", class:"2.B", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"L1", building:"H59",  duration:1},
+      {id:"h", class:"2.B", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D1", building:"H59",  duration:1},
+    ],
+    goals:[
+      {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
+      {id:"g2", type:"teacher_only_week", p:{teacher:"Eva", week:0}, label:"Eva má zkrácený úvazek — učí jen v lichém týdnu."},
+      {id:"g3", type:"teacher_free_day", p:{teacher:"Petr"}, label:"Petr chce jeden den volno."},
+      {id:"g4", type:"subject_time", p:{subject:"CAD", cls:"1.A", maxPeriod:3}, label:"CAD pro 1.A je dopoledne (do 3. hodiny)."},
+      {id:"g5", type:"subject_day", p:{subject:"Elektronika", day:1}, label:"Elektronika probíhá v úterý."},
+    ]
+  }
+];
+
+/* =====================================================================
+   ÚLOŽIŠTĚ — adaptér.
+   V artefaktu na claude.ai používá window.storage; nasazené na Renderu
+   spadne na localStorage; když nic není, zůstává jen export/import řetězec.
+   Vše je obalené try/catch, takže selhání jen vypne automatické ukládání.
+   ===================================================================== */
+const Store=(()=>{
+  try{
+    if(typeof window!=="undefined" && window.storage && window.storage.get){
+      return {
+        get:k=>window.storage.get(k).then(r=>r?r.value:null).catch(()=>null),
+        set:(k,v)=>window.storage.set(k,v).catch(()=>{}),
+        list:p=>window.storage.list(p).then(r=>r&&r.keys?r.keys:[]).catch(()=>[]),
+        del:k=>window.storage.delete(k).catch(()=>{}),
+      };
+    }
+  }catch(e){}
+  try{
+    if(typeof window!=="undefined" && window.localStorage){
+      const ls=window.localStorage;
+      return {
+        get:async k=>ls.getItem(k),
+        set:async (k,v)=>{try{ls.setItem(k,v)}catch(e){}},
+        list:async p=>Object.keys(ls).filter(x=>x.indexOf(p)===0),
+        del:async k=>ls.removeItem(k),
+      };
+    }
+  }catch(e){}
+  return null;
+})();
+
+/* =====================================================================
+   STAV
+   ===================================================================== */
+let LVL=LEVELS[0];
+const S={ placements:{}, selected:null, activeClass:null, over:null };
+
+function card(id){ return LVL.cards.find(c=>c.id===id); }
+function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
+function fieldVar(f){ return f==="ELE"?"var(--ele)":f==="STR"?"var(--str)":f==="IT"?"var(--it)":"var(--gen)"; }
+
+/* =====================================================================
+   LOGIKA — buňky, konflikty, cíle
+   ===================================================================== */
+function cells(id, pl){ // seznam {w,d,p} obsazených buněk
+  const c=card(id), out=[];
+  for(let k=0;k<c.duration;k++) out.push({w:pl.w,d:pl.d,p:pl.p+k});
+  return out;
+}
+function fits(c, p){ return p>=1 && p+c.duration-1<=LVL.periods; }
+
+function computeConflicts(){
+  const occ={}, reasons={};
+  const add=(id,m)=>{(reasons[id]=reasons[id]||new Set()).add(m);};
+  for(const id in S.placements){
+    const c=card(id);
+    for(const cell of cells(id,S.placements[id])){
+      const key=cell.w+"|"+cell.d+"|"+cell.p;
+      (occ[key]=occ[key]||[]).push({id,t:c.teacher,r:c.room,cl:c.class});
+    }
+  }
+  for(const key in occ){
+    const l=occ[key]; if(l.length<2) continue;
+    for(let i=0;i<l.length;i++)for(let j=i+1;j<l.length;j++){
+      const a=l[i],b=l[j];
+      if(a.t===b.t){add(a.id,a.t+" učí zároveň "+b.cl);add(b.id,b.t+" učí zároveň "+a.cl);}
+      if(a.r===b.r){add(a.id,"učebna "+a.r+" je obsazená ("+b.cl+")");add(b.id,"učebna "+b.r+" je obsazená ("+a.cl+")");}
+      if(a.cl===b.cl){add(a.id,a.cl+" má dvě hodiny naráz");add(b.id,b.cl+" má dvě hodiny naráz");}
+    }
+  }
+  return reasons;
+}
+function hasHardConflict(id, pl, placements){ // pro řešič: konflikt mezi `id`@pl a už umístěnými
+  const c=card(id);
+  for(const cell of cells(id,pl)){
+    for(const oid in placements){
+      if(oid===id) continue;
+      const oc=card(oid);
+      for(const ocell of cells(oid,placements[oid])){
+        if(ocell.w===cell.w && ocell.d===cell.d && ocell.p===cell.p){
+          if(oc.teacher===c.teacher||oc.room===c.room||oc.class===c.class) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function placedCardsFor(filter){ // {id,c,pl} splňující filter(c)
+  const out=[];
+  for(const id in S.placements){ const c=card(id); if(!filter||filter(c)) out.push({id,c,pl:S.placements[id]}); }
+  return out;
+}
+
+function evalGoal(g){
+  const allPlaced=fn=>LVL.cards.filter(fn).every(c=>S.placements[c.id]);
+  const P=g.p||{};
+  switch(g.type){
+    case "all_placed":
+      return LVL.cards.every(c=>S.placements[c.id]);
+    case "subject_time":{
+      const fn=c=>c.subject===P.subject && (!P.cls||c.class===P.cls);
+      if(!allPlaced(fn)) return false;
+      return LVL.cards.filter(fn).every(c=>{
+        const pl=S.placements[c.id]; const end=pl.p+c.duration-1;
+        return (P.maxPeriod?end<=P.maxPeriod:true) && (P.minPeriod?pl.p>=P.minPeriod:true) && (P.exact?pl.p===P.exact:true);
+      });
+    }
+    case "subject_day":{
+      const fn=c=>c.subject===P.subject && (!P.cls||c.class===P.cls);
+      if(!allPlaced(fn)) return false;
+      return LVL.cards.filter(fn).every(c=>S.placements[c.id].d===P.day);
+    }
+    case "teacher_free_day":{
+      const mine=placedCardsFor(c=>c.teacher===P.teacher);
+      for(let d=0;d<DAYS.length;d++) if(!mine.some(x=>x.pl.d===d)) return true;
+      return false;
+    }
+    case "teacher_only_week":{
+      const fn=c=>c.teacher===P.teacher;
+      if(!allPlaced(fn)) return false;
+      return placedCardsFor(fn).every(x=>x.pl.w===P.week);
+    }
+    case "class_no_gaps":{
+      const fn=c=>c.class===P.cls;
+      if(!allPlaced(fn)) return false;
+      for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
+        const ps=[];
+        placedCardsFor(fn).filter(x=>x.pl.w===w&&x.pl.d===d).forEach(x=>{
+          for(let k=0;k<x.c.duration;k++) ps.push(x.pl.p+k);
+        });
+        if(ps.length>1){ ps.sort((a,b)=>a-b); if(ps[ps.length-1]-ps[0]+1!==ps.length) return false; }
+      }
+      return true;
+    }
+    case "teacher_transition_gap":{
+      // učitel nesmí mít dvě po sobě jdoucí hodiny v různých budovách bez volné hodiny mezi
+      const mine=placedCardsFor(c=>c.teacher===P.teacher);
+      for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
+        const day=mine.filter(x=>x.pl.w===w&&x.pl.d===d).map(x=>({s:x.pl.p,e:x.pl.p+x.c.duration-1,b:x.c.building}));
+        day.sort((a,b)=>a.s-b.s);
+        for(let i=0;i<day.length-1;i++) if(day[i].b!==day[i+1].b && day[i+1].s-day[i].e<2) return false;
+      }
+      return true;
+    }
+    default: return false;
+  }
+}
+
+/* =====================================================================
+   ŘEŠIČ — "Náhodně".  Bere aktuální (ručně) umístěné jako pevné a zkouší
+   doplnit zbytek tak, aby nevznikl žádný TVRDÝ konflikt. Randomizovaný
+   backtracking se stropem; když nedoplní vše, vrátí nejlepší částečné.
+   Měkké cíle (goals) ignoruje — splnit je je úkol hráče.
+   ===================================================================== */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function startSlots(c){
+  const out=[];
+  for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++)
+    if(fits(c,p)) out.push({w,d,p});
+  return out;
+}
+function randomFill(){
+  const fixed={...S.placements};
+  const todo=shuffle(LVL.cards.filter(c=>!fixed[c.id]).map(c=>c.id));
+  let budget=200000, best={...fixed}, bestN=Object.keys(fixed).length;
+  function bt(i,acc){
+    if(budget--<=0) return null;
+    if(Object.keys(acc).length>bestN){ bestN=Object.keys(acc).length; best={...acc}; }
+    if(i>=todo.length) return {...acc};
+    const c=card(todo[i]);
+    for(const s of shuffle(startSlots(c))){
+      if(!hasHardConflict(c.id,s,acc)){
+        acc[c.id]=s;
+        const r=bt(i+1,acc);
+        if(r) return r;
+        delete acc[c.id];
+        if(budget<=0) break;
+      }
+    }
+    return null;
+  }
+  const res=bt(0,{...fixed});
+  S.placements=res||best;
+  const n=Object.keys(S.placements).length, tot=LVL.cards.length;
+  S.selected=null;
+  render();
+  setStatus(n===tot ? "Náhodně rozmístěno všech "+tot+" kartiček (bez tvrdých konfliktů)."
+                    : "Rozmístěno "+n+" z "+tot+" — tvrdé požadavky neumožnily doplnit zbytek.");
+  autosave();
+}
+
+/* =====================================================================
+   AKCE
+   ===================================================================== */
+function pickUp(id){
+  S.selected=id;
+  S.activeClass=card(id).class;
+  if(S.placements[id]) delete S.placements[id]; // zvednutí z rozvrhu
+  setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu třídy "+card(id).class+".");
+  render();
+}
+function unplace(id){ delete S.placements[id]; if(S.selected===id)S.selected=null; render(); autosave(); }
+function tryPlace(id,w,d,p){
+  const c=card(id);
+  if(!fits(c,p)){ setStatus("Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
+  S.placements[id]={w,d,p};
+  if(S.selected===id) S.selected=null;
+  setStatus("Umístěno. Konflikty jsou červené, splněné požadavky vpravo.");
+  render(); autosave();
+}
+function clearAll(){ S.placements={}; S.selected=null; render(); autosave(); setStatus("Rozvrh vymazán."); }
+
+let statusEl;
+function setStatus(t){ if(statusEl) statusEl.textContent=t; }
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function el(tag,props,...kids){
+  const e=document.createElement(tag); props=props||{};
+  for(const k in props){
+    const v=props[k];
+    if(k==="class")e.className=v;
+    else if(k==="style"&&typeof v==="object")Object.assign(e.style,v);
+    else if(k.slice(0,2)==="on"&&typeof v==="function")e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(v!=null&&v!==false)e.setAttribute(k,v);
+  }
+  kids.flat().forEach(kid=>{ if(kid==null||kid===false)return; e.append(kid.nodeType?kid:document.createTextNode(kid)); });
+  return e;
+}
+
+function render(){
+  if(!S.activeClass) S.activeClass=classesOf()[0];
+  renderPalette(); renderTabs(); renderSchedule(); renderGoals();
+}
+
+function renderPalette(){
+  const box=document.getElementById("palette"); box.textContent="";
+  const unplaced=LVL.cards.filter(c=>!S.placements[c.id]);
+  if(!unplaced.length){ box.append(el("div",{class:"palette-empty"},"Všechny kartičky jsou v rozvrhu.")); return; }
+  unplaced.forEach(c=>{
+    const d=el("div",{
+      class:"card dur"+c.duration+(S.selected===c.id?" sel":""),
+      "data-dur":c.duration+"h", draggable:"true",
+      style:{"--f":fieldVar(c.field)},
+      onclick:()=>pickUp(c.id),
+      ondragstart:ev=>{ev.dataTransfer.setData("text/plain",c.id);S.selected=c.id;S.activeClass=c.class;}
+    },
+      el("div",{class:"subj"},c.subject),
+      el("div",{class:"meta"},
+        el("span",{class:"chip"},c.class),
+        el("span",{},c.teacher),
+        el("span",{},c.room),
+        el("span",{class:"chip"},c.building)
+      )
+    );
+    box.append(d);
+  });
+}
+
+function renderTabs(){
+  const box=document.getElementById("tabs"); box.textContent="";
+  classesOf().forEach(cl=>{
+    box.append(el("button",{class:"tab"+(cl===S.activeClass?" active":""),onclick:()=>{S.activeClass=cl;render();}},cl));
+  });
+}
+
+function renderSchedule(){
+  const box=document.getElementById("schedule"); box.textContent="";
+  const reasons=computeConflicts();
+  LVL.weeks.forEach((wname,w)=>{
+    const wrap=el("div",{class:"week"});
+    if(LVL.weeks.length>1) wrap.append(el("div",{class:"week-title"},wname+" týden"));
+    const grid=el("div",{class:"grid",style:{
+      gridTemplateColumns:"38px repeat(5,1fr)",
+      gridTemplateRows:"24px repeat("+LVL.periods+",minmax(46px,auto))"
+    }});
+    // hlavička dní
+    grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
+    DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gh",style:{gridColumn:d+2,gridRow:1}},dn)));
+    // popisky hodin
+    for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:p+1}},p+"."));
+
+    // mapa pokrytí buněk umístěnými kartičkami aktivní třídy
+    const cover={}; // "d|p" -> {id, top:bool}
+    placedCardsFor(c=>c.class===S.activeClass).filter(x=>x.pl.w===w).forEach(x=>{
+      for(let k=0;k<x.c.duration;k++) cover[x.pl.d+"|"+(x.pl.p+k)]={id:x.id,top:k===0};
+    });
+
+    for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
+      const cov=cover[d+"|"+p];
+      if(cov){
+        if(!cov.top) continue; // pokryto blokem výš
+        const c=card(cov.id), conf=reasons[cov.id];
+        const pc=el("div",{
+          class:"pcard"+(conf?" conflict":""), draggable:"true",
+          style:{"--f":fieldVar(c.field),gridColumn:d+2,gridRow:(p+1)+" / span "+c.duration},
+          title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")",
+          onclick:ev=>{ if(ev.target.classList.contains("x"))return; pickUp(cov.id); },
+          ondragstart:ev=>{ev.dataTransfer.setData("text/plain",cov.id);S.selected=cov.id;}
+        },
+          el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(cov.id)},"×"),
+          el("div",{class:"subj"},c.subject),
+          el("div",{class:"sub"},c.teacher+" · "+c.room),
+          el("div",{class:"sub"},c.building)
+        );
+        grid.append(pc);
+      }else{
+        const droppable=S.selected && fits(card(S.selected),p);
+        const cell=el("div",{
+          class:"cell"+(droppable?" drop":""),
+          style:{gridColumn:d+2,gridRow:p+1},
+          onclick:()=>{ if(S.selected) tryPlace(S.selected,w,d,p); },
+          ondragover:ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");},
+          ondragleave:ev=>ev.currentTarget.classList.remove("over"),
+          ondrop:ev=>{ev.preventDefault();const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);}
+        });
+        grid.append(cell);
+      }
+    }
+    wrap.append(grid); box.append(wrap);
+  });
+}
+
+function renderGoals(){
+  const box=document.getElementById("goals"); box.textContent="";
+  const results=LVL.goals.map(g=>({g,met:evalGoal(g)}));
+  const done=results.filter(r=>r.met).length, tot=results.length;
+  const pct=tot?Math.round(done/tot*100):0;
+  const reasons=computeConflicts(); const confCount=Object.keys(reasons).length;
+
+  box.append(el("div",{class:"score"},el("b",{},pct+" %"),el("span",{class:"muted"},"splněno "+done+"/"+tot)));
+  box.append(el("div",{class:"bar"},el("div",{style:{width:pct+"%"}})));
+
+  box.append(el("div",{class:"conf-line "+(confCount?"bad":"ok")},
+    confCount?("Konflikty: "+confCount+" kartiček (červeně)") : "Žádné konflikty."));
+
+  results.forEach(({g,met})=>{
+    box.append(el("div",{class:"goal"+(met?" met":"")},
+      el("div",{class:"dot"},met?"✓":""),
+      el("div",{class:"txt"},g.label)
+    ));
+  });
+
+  if(done===tot && confCount===0)
+    box.append(el("div",{class:"win"},"Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉"));
+
+  box.append(el("div",{class:"legend"},
+    el("span",{},el("span",{class:"sw",style:{background:"var(--it)"}}),"IT"),
+    el("span",{},el("span",{class:"sw",style:{background:"var(--ele)"}}),"Elektro"),
+    el("span",{},el("span",{class:"sw",style:{background:"var(--str)"}}),"Strojírna")
+  ));
+}
+
+/* =====================================================================
+   ULOŽENÍ / NAČTENÍ
+   ===================================================================== */
+function b64e(s){ return btoa(unescape(encodeURIComponent(s))); }
+function b64d(s){ return decodeURIComponent(escape(atob(s))); }
+function exportStr(){ return b64e(JSON.stringify({v:1,level:LVL.id,pl:S.placements})); }
+function importStr(str){
+  try{
+    const o=JSON.parse(b64d(str.trim()));
+    const lv=LEVELS.find(l=>l.id===o.level); if(!lv) throw 0;
+    loadLevel(lv.id,false);
+    const valid={}; for(const id in o.pl){ if(card(id)) valid[id]=o.pl[id]; }
+    S.placements=valid; render(); autosave();
+    setStatus("Pozice načtena.");
+    return true;
+  }catch(e){ setStatus("Řetězec se nepodařilo načíst."); return false; }
+}
+function autosave(){ if(Store) Store.set("auto:"+LVL.id, exportStr()); }
+async function loadAutosave(){
+  if(!Store) return;
+  const s=await Store.get("auto:"+LVL.id);
+  if(s){ try{ const o=JSON.parse(b64d(s)); const valid={}; for(const id in o.pl) if(card(id)) valid[id]=o.pl[id]; S.placements=valid; render(); }catch(e){} }
+}
+
+/* ---------- MODÁLY ---------- */
+function confirmModal(title,text,onYes,yesLabel){
+  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)close();}});
+  function close(){ov.remove();}
+  ov.append(el("div",{class:"modal"},
+    el("h3",{},title), el("p",{},text),
+    el("div",{class:"row"},
+      el("button",{onclick:close},"Zrušit"),
+      el("button",{class:"primary",onclick:()=>{close();onYes();}},yesLabel||"Potvrdit")
+    )
+  ));
+  document.body.append(ov);
+}
+
+async function saveModal(){
+  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
+  const ta=el("textarea",{readonly:"readonly"},exportStr());
+  const slotsBox=el("div",{});
+  const m=el("div",{class:"modal"},
+    el("h3",{},"Uložit / Načíst pozici"),
+    el("p",{},"Řetězec níž je kompletní pozice — zkopíruj si ho kamkoli a kdykoli vlož zpět. Funguje všude, i bez účtu."),
+    ta,
+    el("div",{class:"row",style:{justifyContent:"flex-start",marginTop:"8px"}},
+      el("button",{onclick:()=>{ta.select();try{document.execCommand("copy");}catch(e){} setStatus("Řetězec zkopírován.");}},"Kopírovat"),
+      el("button",{onclick:()=>{ const v=prompt("Vlož řetězec pozice:"); if(v){ if(importStr(v)) ov.remove(); } }},"Načíst z řetězce")
+    ),
+    el("h3",{style:{marginTop:"16px",fontSize:"14px"}},"Uložené pozice"),
+    slotsBox
+  );
+  ov.append(m); document.body.append(ov);
+
+  async function refresh(){
+    slotsBox.textContent="";
+    if(!Store){ slotsBox.append(el("p",{},"Pojmenované sloty tu nejsou dostupné — použij řetězec výš.")); return; }
+    slotsBox.append(el("div",{class:"row",style:{justifyContent:"flex-start"}},
+      el("button",{class:"primary",onclick:async()=>{
+        const name=prompt("Název pozice:"); if(!name)return;
+        await Store.set("slot:"+LVL.id+":"+name, exportStr()); refresh(); setStatus("Uloženo jako „"+name+"“.");
+      }},"Uložit aktuální pozici")
+    ));
+    const keys=await Store.list("slot:"+LVL.id+":");
+    if(!keys.length){ slotsBox.append(el("p",{style:{marginTop:"8px"}},"Zatím nic uloženého.")); return; }
+    keys.forEach(k=>{
+      const name=k.split(":").slice(2).join(":");
+      slotsBox.append(el("div",{class:"slot-row"},
+        el("span",{class:"name"},name),
+        el("button",{onclick:async()=>{ const s=await Store.get(k); if(s&&importStr(s)) ov.remove(); }},"Načíst"),
+        el("button",{onclick:async()=>{ await Store.del(k); refresh(); }},"Smazat")
+      ));
+    });
+  }
+  refresh();
+}
+
+/* =====================================================================
+   LEVELY / TÉMA / INIT
+   ===================================================================== */
+function loadLevel(id,doAutoload){
+  LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
+  S.placements={}; S.selected=null; S.activeClass=classesOf()[0];
+  document.getElementById("lvlDesc").textContent=LVL.desc;
+  document.getElementById("levelSel").value=LVL.id;
+  render();
+  if(doAutoload!==false) loadAutosave();
+}
+
+function setTheme(t){
+  document.documentElement.setAttribute("data-theme",t);
+  if(Store) Store.set("theme",t);
+}
+
+window.addEventListener("DOMContentLoaded",async()=>{
+  statusEl=document.getElementById("status");
+  const sel=document.getElementById("levelSel");
+  LEVELS.forEach(l=>sel.append(el("option",{value:l.id},l.name)));
+  sel.addEventListener("change",()=>loadLevel(sel.value));
+
+  document.getElementById("clearBtn").onclick=()=>confirmModal(
+    "Smazat rozvrh?","Všechny kartičky se vrátí do seznamu. Tahle akce nejde vrátit.",clearAll,"Smazat");
+  document.getElementById("randomBtn").onclick=()=>confirmModal(
+    "Náhodně rozmístit?","Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné zůstanou.",randomFill,"Rozmístit");
+  document.getElementById("saveBtn").onclick=saveModal;
+
+  let theme="light"; if(Store){ const t=await Store.get("theme"); if(t)theme=t; }
+  setTheme(theme);
+  document.getElementById("themeBtn").onclick=()=>
+    setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&S.selected){S.selected=null;render();setStatus("Výběr zrušen.");}});
+
+  loadLevel(LEVELS[0].id);
+});
+</script>
+</body>
+</html>

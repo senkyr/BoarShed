@@ -1,0 +1,6 @@
+# Normalizace konců řádků napříč stroji
+* text=auto
+*.html text
+*.md   text
+*.css  text
+*.js   text

@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editory / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Dočasné / build (projekt build nemá, ale pro jistotu)
+*.log
+tmp/
+scratch/
