@@ -74,9 +74,14 @@
   .palette-empty{font-size:13px;color:var(--ink-soft);padding:8px 2px}
 
   /* ---------- ROZVRH ---------- */
-  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .tab{padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-size:13px}
   .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tab.view{background:transparent}
+  .tab.view.active{background:var(--accent-soft);color:#fff;border-color:var(--accent-soft)}
+  .tabsep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+  .ro-note{font-size:11px;color:var(--ink-soft);font-style:italic;align-self:center;margin-left:2px}
+  .pcard.ro{cursor:pointer}
   .week{margin-top:14px}
   .week-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:6px}
   .grid{display:grid;gap:4px}
@@ -164,6 +169,7 @@
 <div class="toolbar">
   <button id="clearBtn">Smazat rozvrh</button>
   <button id="randomBtn" class="primary">Náhodně rozmístit</button>
+  <button id="checkBtn" class="ghost" title="Zkontrolovat, zda je level vůbec řešitelný">Řešitelnost?</button>
   <div class="spacer" style="flex:1"></div>
   <div class="status" id="status">Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).</div>
 </div>
@@ -204,24 +210,24 @@ const LEVELS=[
   },
   {
     id:"l2", name:"2 · Dva týdny, dvě budovy",
-    desc:"Lichý i sudý týden, dvě třídy, sdílené učebny — pozor na konflikty.",
+    desc:"Lichý i sudý týden, dvě budovy. Jan lítá mezi Š101 a H59 — hlídej přechody.",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
       {id:"a", class:"1.A", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:2},
       {id:"b", class:"1.A", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:1},
-      {id:"c", class:"1.A", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"L1", building:"H59",  duration:2},
-      {id:"d", class:"1.A", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D1", building:"H59",  duration:1},
+      {id:"c", class:"1.A", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"D1", building:"H59",  duration:2},
+      {id:"d", class:"1.A", subject:"Sítě",         field:"IT",  teacher:"Jan",   room:"L1", building:"Š101", duration:1},
       {id:"e", class:"2.B", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:1},
-      {id:"f", class:"2.B", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:2},
-      {id:"g", class:"2.B", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"L1", building:"H59",  duration:1},
-      {id:"h", class:"2.B", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D1", building:"H59",  duration:1},
+      {id:"f", class:"2.B", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D2", building:"H59",  duration:2},
+      {id:"g", class:"2.B", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"D1", building:"H59",  duration:1},
+      {id:"h", class:"2.B", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:1},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
-      {id:"g2", type:"teacher_only_week", p:{teacher:"Eva", week:0}, label:"Eva má zkrácený úvazek — učí jen v lichém týdnu."},
-      {id:"g3", type:"teacher_free_day", p:{teacher:"Petr"}, label:"Petr chce jeden den volno."},
-      {id:"g4", type:"subject_time", p:{subject:"CAD", cls:"1.A", maxPeriod:3}, label:"CAD pro 1.A je dopoledne (do 3. hodiny)."},
-      {id:"g5", type:"subject_day", p:{subject:"Elektronika", day:1}, label:"Elektronika probíhá v úterý."},
+      {id:"g2", type:"subject_week", p:{subject:"Programování", cls:"2.B", week:1}, label:"Programování 2.B padne do sudého týdne."},
+      {id:"g3", type:"teacher_transition_gap", p:{teacher:"Jan"}, label:"Jan přebíhá mezi budovami — po přechodu potřebuje volnou hodinu."},
+      {id:"g4", type:"lunch_break", p:{cls:"1.A", period:4}, label:"1.A má 4. hodinu volnou (oběd)."},
+      {id:"g5", type:"subject_time", p:{subject:"CAD", cls:"2.B", maxPeriod:4}, label:"CAD (2.B) je dopoledne (do 4. hodiny)."},
     ]
   }
 ];
@@ -261,10 +267,16 @@ const Store=(()=>{
    STAV
    ===================================================================== */
 let LVL=LEVELS[0];
-const S={ placements:{}, selected:null, activeClass:null, over:null };
+// view = dimenze pohledu na rozvrh: "class" (hraní), "teacher"/"room" (jen čtení).
+// active = vybraná entita v dané dimenzi (název třídy / učitele / učebny).
+const S={ placements:{}, selected:null, view:"class", active:null, over:null };
 
 function card(id){ return LVL.cards.find(c=>c.id===id); }
 function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
+function teachersOf(){ return [...new Set(LVL.cards.map(c=>c.teacher))]; }
+function roomsOf(){ return [...new Set(LVL.cards.map(c=>c.room))]; }
+function entitiesOf(view){ return view==="teacher"?teachersOf():view==="room"?roomsOf():classesOf(); }
+function entityOf(c,view){ return view==="teacher"?c.teacher:view==="room"?c.room:c.class; }
 function fieldVar(f){ return f==="ELE"?"var(--ele)":f==="STR"?"var(--str)":f==="IT"?"var(--it)":"var(--gen)"; }
 
 /* =====================================================================
@@ -371,6 +383,25 @@ function evalGoal(g){
       }
       return true;
     }
+    case "subject_week":{ // předmět (volitelně dané třídy) se učí jen v daném týdnu
+      const fn=c=>c.subject===P.subject && (!P.cls||c.class===P.cls);
+      if(!allPlaced(fn)) return false;
+      return LVL.cards.filter(fn).every(c=>S.placements[c.id].w===P.week);
+    }
+    case "max_per_day":{ // třída NEBO učitel nemá víc než P.max hodin v žádném dni
+      const fn = P.teacher ? (c=>c.teacher===P.teacher) : (c=>c.class===P.cls);
+      if(!allPlaced(fn)) return false;
+      for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
+        let h=0; placedCardsFor(fn).filter(x=>x.pl.w===w&&x.pl.d===d).forEach(x=>h+=x.c.duration);
+        if(h>P.max) return false;
+      }
+      return true;
+    }
+    case "lunch_break":{ // třída má danou hodinu (period) volnou každý den — polední pauza
+      const fn=c=>c.class===P.cls;
+      if(!allPlaced(fn)) return false;
+      return !placedCardsFor(fn).some(x=>{ for(let k=0;k<x.c.duration;k++) if(x.pl.p+k===P.period) return true; return false; });
+    }
     default: return false;
   }
 }
@@ -419,11 +450,46 @@ function randomFill(){
 }
 
 /* =====================================================================
+   KONTROLA ŘEŠITELNOSTI — pomůcka pro ladění obtížnosti levelů.
+   Vzorkuje náhodné KOMPLETNÍ rozvrhy (bez tvrdých konfliktů) a měří, jak
+   často padne výhra (všechny cíle splněné). 0 výher = level je extrémně
+   těžký nebo neřešitelný. Lze volat i z konzole: checkSolvable("l2").
+   ===================================================================== */
+function checkSolvable(levelId, samples){
+  const lvl=LEVELS.find(l=>l.id===(levelId||LVL.id)); if(!lvl) return null;
+  const M=samples||300, savedLVL=LVL, savedPl=S.placements;
+  LVL=lvl; // startSlots/fits/card/hasHardConflict/evalGoal čtou globální LVL a S
+  const base={}; lvl.cards.forEach(c=>base[c.id]=startSlots(c));
+  function randomComplete(){
+    const order=shuffle(lvl.cards.map(c=>c.id)), plc={}; let budget=60000;
+    function bt(i){
+      if(budget--<=0) return false;
+      if(i>=order.length) return true;
+      const id=order[i];
+      for(const s of shuffle(base[id].slice())) if(!hasHardConflict(id,s,plc)){ plc[id]=s; if(bt(i+1)) return true; delete plc[id]; }
+      return false;
+    }
+    return bt(0)?plc:null;
+  }
+  let complete=0, wins=0; const gm=lvl.goals.map(()=>0);
+  for(let it=0; it<M; it++){
+    const plc=randomComplete(); if(!plc) continue;
+    complete++; S.placements=plc;
+    let all=true; lvl.goals.forEach((g,gi)=>{ if(evalGoal(g)) gm[gi]++; else all=false; });
+    if(all) wins++;
+  }
+  LVL=savedLVL; S.placements=savedPl; // obnov stav rozehrané hry
+  return { level:lvl.id, samples:M, completeFound:complete, wins,
+    winRatePct:+(wins/Math.max(1,complete)*100).toFixed(1), solvable:wins>0,
+    perGoal: lvl.goals.map((g,gi)=>({type:g.type, metPct:+(gm[gi]/Math.max(1,complete)*100).toFixed(0), label:g.label})) };
+}
+
+/* =====================================================================
    AKCE
    ===================================================================== */
 function pickUp(id){
   S.selected=id;
-  S.activeClass=card(id).class;
+  S.view="class"; S.active=card(id).class; // umisťovat se dá jen v pohledu po třídách
   if(S.placements[id]) delete S.placements[id]; // zvednutí z rozvrhu
   setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu třídy "+card(id).class+".");
   render();
@@ -459,7 +525,8 @@ function el(tag,props,...kids){
 }
 
 function render(){
-  if(!S.activeClass) S.activeClass=classesOf()[0];
+  const ents=entitiesOf(S.view);
+  if(!ents.includes(S.active)) S.active=ents[0];
   renderPalette(); renderTabs(); renderSchedule(); renderGoals();
 }
 
@@ -473,7 +540,7 @@ function renderPalette(){
       "data-dur":c.duration+"h", draggable:"true",
       style:{"--f":fieldVar(c.field)},
       onclick:()=>pickUp(c.id),
-      ondragstart:ev=>{ev.dataTransfer.setData("text/plain",c.id);S.selected=c.id;S.activeClass=c.class;}
+      ondragstart:ev=>{ev.dataTransfer.setData("text/plain",c.id);S.selected=c.id;S.view="class";S.active=c.class;}
     },
       el("div",{class:"subj"},c.subject),
       el("div",{class:"meta"},
@@ -489,9 +556,18 @@ function renderPalette(){
 
 function renderTabs(){
   const box=document.getElementById("tabs"); box.textContent="";
-  classesOf().forEach(cl=>{
-    box.append(el("button",{class:"tab"+(cl===S.activeClass?" active":""),onclick:()=>{S.activeClass=cl;render();}},cl));
+  // přepínač dimenze pohledu: třídy (hraní) / učitelé / učebny (jen čtení)
+  const views=[["class","Třídy"],["teacher","Učitelé"],["room","Učebny"]];
+  views.forEach(([v,lbl])=>{
+    box.append(el("button",{class:"tab view"+(v===S.view?" active":""),
+      onclick:()=>{ S.view=v; S.active=entitiesOf(v)[0]; render(); }},lbl));
   });
+  box.append(el("div",{class:"tabsep"}));
+  // záložky entit v aktuální dimenzi
+  entitiesOf(S.view).forEach(e=>{
+    box.append(el("button",{class:"tab"+(e===S.active?" active":""),onclick:()=>{S.active=e;render();}},e));
+  });
+  if(S.view!=="class") box.append(el("span",{class:"ro-note"},"jen pro čtení"));
 }
 
 function renderSchedule(){
@@ -510,21 +586,23 @@ function renderSchedule(){
     // popisky hodin
     for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:p+1}},p+"."));
 
-    // POZADÍ: vykresli VŠECHNY buňky (drop zóny). Kartičky se kreslí přes ně.
+    const playing = S.view==="class"; // jen v pohledu po třídách se umisťuje
+
+    // POZADÍ: vykresli VŠECHNY buňky. V herním pohledu jsou to drop zóny.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
-      const droppable=S.selected && fits(card(S.selected),p);
-      grid.append(el("div",{
-        class:"cell"+(droppable?" drop":""),
-        style:{gridColumn:d+2,gridRow:p+1},
-        onclick:()=>{ if(S.selected) tryPlace(S.selected,w,d,p); },
-        ondragover:ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");},
-        ondragleave:ev=>ev.currentTarget.classList.remove("over"),
-        ondrop:ev=>{ev.preventDefault();ev.currentTarget.classList.remove("over");const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);}
-      }));
+      const droppable=playing && S.selected && fits(card(S.selected),p);
+      const props={ class:"cell"+(droppable?" drop":""), style:{gridColumn:d+2,gridRow:p+1} };
+      if(playing){
+        props.onclick=()=>{ if(S.selected) tryPlace(S.selected,w,d,p); };
+        props.ondragover=ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");};
+        props.ondragleave=ev=>ev.currentTarget.classList.remove("over");
+        props.ondrop=ev=>{ev.preventDefault();ev.currentTarget.classList.remove("over");const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);};
+      }
+      grid.append(el("div",props));
     }
 
-    // umístěné kartičky aktivní třídy v tomto týdnu
-    const placed=placedCardsFor(c=>c.class===S.activeClass).filter(x=>x.pl.w===w);
+    // umístěné kartičky vybrané entity (třída / učitel / učebna) v tomto týdnu
+    const placed=placedCardsFor(c=>entityOf(c,S.view)===S.active).filter(x=>x.pl.w===w);
 
     // PRUHY (lanes): překrývající se bloky v jednom dni dostanou různý pruh a
     // vykreslí se vedle sebe, takže se nikdy navzájem neschovají. (Dřív poslední
@@ -548,15 +626,26 @@ function renderSchedule(){
       const st={"--f":fieldVar(c.field),gridColumn:x.pl.d+2,gridRow:(x.pl.p+1)+" / span "+c.duration};
       if(n>1){ st.justifySelf="start"; st.width="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
       if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
-      const pc=el("div",{
-        class:"pcard"+(conf?" conflict":""), draggable:"true", style:st,
-        title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")",
-        onclick:ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); },
-        ondragstart:ev=>{ev.dataTransfer.setData("text/plain",x.id);S.selected=x.id;}
-      },
-        el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"),
+      // sekundární popisek nezobrazuje to, podle čeho je pohled filtrovaný
+      const sub = S.view==="teacher" ? c.class+" · "+c.room
+                : S.view==="room"    ? c.class+" · "+c.teacher
+                : c.teacher+" · "+c.room;
+      const props={
+        class:"pcard"+(conf?" conflict":"")+(playing?"":" ro"), style:st,
+        title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
+      };
+      if(playing){
+        props.draggable="true";
+        props.onclick=ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); };
+        props.ondragstart=ev=>{ev.dataTransfer.setData("text/plain",x.id);S.selected=x.id;};
+      }else{
+        props.title+=" — klikni pro přechod do pohledu třídy "+c.class;
+        props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
+      }
+      const pc=el("div",props,
+        playing?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
         el("div",{class:"subj"},c.subject),
-        el("div",{class:"sub"},c.teacher+" · "+c.room),
+        el("div",{class:"sub"},sub),
         el("div",{class:"sub"},c.building)
       );
       grid.append(pc);
@@ -678,7 +767,7 @@ async function saveModal(){
    ===================================================================== */
 function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
-  S.placements={}; S.selected=null; S.activeClass=classesOf()[0];
+  S.placements={}; S.selected=null; S.view="class"; S.active=classesOf()[0];
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
   render();
@@ -702,6 +791,14 @@ window.addEventListener("DOMContentLoaded",async()=>{
   document.getElementById("randomBtn").onclick=()=>confirmModal(
     "Náhodně rozmístit?","Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné zůstanou.",randomFill,"Rozmístit");
   document.getElementById("saveBtn").onclick=saveModal;
+  document.getElementById("checkBtn").onclick=()=>{
+    const r=checkSolvable(LVL.id);
+    if(!r){ setStatus("Level nenalezen."); return; }
+    console.log("Řešitelnost levelu "+r.level+":",r);
+    setStatus(r.solvable
+      ? "Level je řešitelný — výhru má ≈"+r.winRatePct+" % náhodných rozvrhů. Detaily v konzoli."
+      : "Sampling ("+r.samples+") nenašel výhru — level je hodně těžký nebo neřešitelný. Detaily v konzoli.");
+  };
 
   let theme="light"; if(Store){ const t=await Store.get("theme"); if(t)theme=t; }
   setTheme(theme);

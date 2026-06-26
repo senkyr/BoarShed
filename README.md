@@ -20,14 +20,20 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
 
 - Tři sloupce: **Kartičky / Rozvrh / Požadavky**, responzivní (pod 1100 px nad sebe).
 - Umístění kartičky **kliknutím** i **drag-and-drop**; bloky 1/2/3 h.
-- **Globální detekce konfliktů** napříč třídami, zvýraznění + tooltip s důvodem.
-- Živé vyhodnocení cílů, skóre v %, progress bar, výherní stav.
+- **Pohledy Třídy / Učitelé / Učebny** — hraje se v pohledu po třídách, učitelský
+  a učebnový pohled jsou jen pro čtení (kontrola konfliktů).
+- **Globální detekce konfliktů**, zvýraznění + tooltip s důvodem. Překrývající se
+  hodiny stojí vedle sebe (žádná se neschová).
+- Živé vyhodnocení cílů, skóre v %, progress bar, výherní stav. Bohatá sada typů cílů
+  (denní okno, konkrétní den/týden, volný den, jen jeden týden, bez oken, max hodin
+  denně, polední pauza, přechod mezi budovami).
 - Tlačítko **Náhodně** — randomizovaný backtracking, doplní jen neumístěné karty bez
-  tvrdých konfliktů; tlačítko **Smazat** s potvrzením.
+  tvrdých konfliktů; **Smazat** s potvrzením; **Řešitelnost?** zkontroluje, zda je
+  level vůbec vyhratelný a jak je těžký.
 - **Ukládání** přes serializační řetězec (Base64 JSON) + pojmenované sloty; funguje
   i bez účtu a po nasazení.
 - Světlý/tmavý motiv (CSS proměnné), volba se pamatuje.
-- Dvě demo úrovně (L1 rozjezd, L2 dva týdny / dvě budovy).
+- Dvě demo úrovně (L1 rozjezd, L2 dva týdny / dvě budovy s přechody mezi budovami).
 
 ## Spuštění
 
