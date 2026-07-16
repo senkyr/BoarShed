@@ -21,7 +21,10 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
 - Tři sloupce: **Kartičky / Rozvrh / Požadavky**, responzivní (pod 1100 px nad sebe).
 - **Rozvrh „na šířku" na desktopu** (dny v řádcích, hodiny ve sloupcích); na úzkém
   displeji se překlopí na hodiny pod sebou.
-- Umístění kartičky **kliknutím** i **drag-and-drop**; bloky 1/2/3 h.
+- Umístění kartičky **kliknutím** i **tažením** — jednotný pointer-drag funguje myší
+  i na dotyku (na mobilu podržet ~200 ms a táhnout); bloky 1/2/3 h.
+- **Zpět / Znovu** (↶/↷, Ctrl+Z / Ctrl+Y); Esc nebo zrušené tažení vrací zvednutou
+  kartičku na původní místo.
 - **Pohledy Třídy / Učitelé / Učebny** — hraje se v pohledu po třídách, učitelský
   a učebnový pohled jsou jen pro čtení (kontrola konfliktů).
 - **Globální detekce konfliktů**, zvýraznění + tooltip s důvodem. Překrývající se
@@ -30,12 +33,19 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
   (denní okno, konkrétní den/týden, volný den, jen jeden týden, bez oken, max hodin
   denně, polední pauza, přechod mezi budovami).
 - Tlačítko **Náhodně** — randomizovaný backtracking, doplní jen neumístěné karty bez
-  tvrdých konfliktů; **Smazat** s potvrzením; **Řešitelnost?** zkontroluje, zda je
-  level vůbec vyhratelný a jak je těžký.
+  tvrdých konfliktů (volitelně zkusí splnit i herní cíle); když se něco nevejde, hlásí
+  který tvrdý požadavek to zablokoval. **Smazat** s potvrzením; **Řešitelnost?** ukáže
+  v modálu, jak je level těžký (% výher a splnění jednotlivých cílů).
+- **Iron-man**: level může stavět na pozici z předchozího levelu — přenesené kartičky
+  jsou zamčené (🔒). Demo level 3 staví na tvém řešení levelu 2.
+- **Editor levelů** — vlastní levely jako JSON (šablona z existujícího levelu,
+  validace, test řešitelnosti), ukládají se lokálně a v přepínači mají `*`.
 - **Ukládání** přes serializační řetězec (Base64 JSON) + pojmenované sloty; funguje
-  i bez účtu a po nasazení.
-- Světlý/tmavý motiv (CSS proměnné), volba se pamatuje.
-- Dvě demo úrovně (L1 rozjezd, L2 dva týdny / dvě budovy s přechody mezi budovami).
+  i bez účtu a po nasazení. **Sdílení pozice odkazem** (`#p=…`). Dokončené levely
+  mají ✓ v přepínači.
+- Světlý/tmavý motiv (CSS proměnné), respektuje systémovou preferenci, volba se pamatuje.
+- Tři demo úrovně (L1 rozjezd, L2 dva týdny / dvě budovy s přechody, L3 iron-man
+  nadstavba nad L2).
 
 ## Spuštění
 

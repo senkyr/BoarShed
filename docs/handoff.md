@@ -71,6 +71,17 @@ Hráč přetahuje kartičky do rozvrhu a snaží se splnit současně všechny p
 Vše je v jediném souboru `rozvrh.html` — čistý HTML + CSS + vanilla JS, **bez závislostí a bez build
 kroku**. Renderuje se jako artefakt a zároveň je to přímo soubor pro nasazení jako Render **Static Site**.
 
+**Doplněno po MVP (iterace 06–07/2026):** pohledy za učitele/učebnu (jen pro čtení), rozvrh
+„na šířku" na desktopu, lanes pro překrývající se kartičky, nové typy cílů (`subject_week`,
+`max_per_day`, `lunch_break`, `teacher_time`, aktivní `teacher_transition_gap`), kontrola
+řešitelnosti (modál s průběhem a tabulkou per-cíl), **jednotný pointer-drag** (myš i dotyk,
+hold-to-drag 200 ms), **undo/redo** (↶/↷, Ctrl+Z/Y), validace importovaných pozic, evidence
+dokončených levelů (✓ v selectu), sdílení pozice odkazem (`#p=…`), motiv bez flashe s respektem
+k systémové preferenci, **iron-man** (zamčené kartičky `given`/`carryFrom`, demo level L3
+staví na pozici z L2), **editor levelů** (JSON s validací a testem řešitelnosti, vlastní levely
+se ukládají do úložiště a v přepínači mají `*`) a **chytřejší řešič** (delší bloky dřív,
+volitelný multi-restart na měkké cíle, hlášení kterého tvrdého požadavku se doplnění zaseklo).
+
 **UI a rozvržení**
 - Tři sloupce: Kartičky / Rozvrh / Požadavky. Responsivní — pod 1100 px se skládají pod sebe.
 - Hlavička: výběr levelu, tlačítko Uložit/Načíst, přepínač světlý/tmavý režim.
@@ -190,6 +201,18 @@ v tooltipu. Pohled „za učitele“ / „za učebnu“ zatím není.
 **Drag na desktopu (HTML5 DnD); na dotyku se spoléhá na klikání.** HTML5 DnD se na touchi nespouští,
 proto je klik-klik plnohodnotná alternativa.
 
+**HTML5 DnD nahrazen pointer events (07/2026).** HTML5 DnD nefungoval na dotyku a nesměl se při něm
+re-renderovat DOM (drop zóny se nikdy nezvýrazňovaly); pointer-drag je jedna cesta pro myš i dotyk
+a řeší i bug s „neviditelným výběrem" po přerušeném tažení. Na dotyku se táhne po podržení ~200 ms —
+`touch-action:none` by zablokoval scroll stránky přes kartičky, proto se scroll blokuje až od začátku
+tažení non-passive `touchmove` listenerem. Klik-klik zůstává plnohodnotná cesta.
+
+**Esc, zrušené tažení i výběr jiné karty vrací zvednutou kartičku na původní místo** (dřív spadla do
+palety a pozice byla pryč). Undo počítá zvednutou kartu na původním místě → přesun je jeden krok Zpět.
+
+**Sdílení odkazem maže hash po načtení** (`history.replaceState`) a neautosavuje, aby otevření cizího
+odkazu nepřepsalo vlastní rozehranou pozici daného levelu.
+
 ---
 
 ## 5. Otevřené body / co dořešit / TODO
@@ -201,16 +224,18 @@ Od zadavatele:
    rozlišit tvrdé vs. herní.
 3. **Režim:** kola vs. iron man (nebo oba); zda chtít i pohled za učitele/učebnu.
 
-Technické TODO / nápady k dořešení:
-- Iron man: přenos pozic z předchozího levelu jako zamčené kartičky.
-- Pohledy „za učitele“ a „za učebnu“ (jen pro čtení, kontrola konfliktů).
-- Další typy cílů: vázanost předmětu na budovu, max hodin denně pro třídu/učitele, polední pauza,
-  preferované/zakázané hodiny učitele.
-- Řešič: zohlednit i část měkkých požadavků (volitelně), lepší heuristika výběru slotů, hlášení,
-  který tvrdý požadavek doplnění zablokoval.
-- Dotyk: případně vlastní pointer-drag pro plynulé tažení na tabletu.
-- Generátor/editor levelů (aby se levely nemusely psát ručně v poli `LEVELS`).
-- Kontrola, zda je level vůbec řešitelný (užitečné při ladění obtížnosti).
+Technické TODO / nápady:
+- Případné další typy cílů podle reálných levelů. Pozn.: „vázanost předmětu na budovu"
+  není herní cíl — budova je pevná vlastnost kartičky, řeší se návrhem dat levelu.
+- Editor levelů: případně formulářová nadstavba nad JSON (teď se edituje JSON přímo).
+- Iron-man: `carryFrom` přenáší autosave zdrojového levelu (nemusí to být výherní pozice);
+  případně zpřísnit na „přenést jen po výhře".
+
+Hotové z původního TODO (viz §2): pohledy za učitele/učebnu, kontrola řešitelnosti, dotykový
+pointer-drag, iron-man (zamčené kartičky + `carryFrom`), editor levelů, chytřejší řešič
+(heuristika, měkké cíle, hlášení bloku), cíle max hodin denně, polední pauza
+a preferované/zakázané hodiny učitele (`teacher_time`). Nad rámec: undo/redo, validace
+importu, ✓ u dokončených levelů, sdílení pozice odkazem.
 
 ---
 
