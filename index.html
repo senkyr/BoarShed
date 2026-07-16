@@ -120,6 +120,10 @@ try{
   html.dragging{user-select:none}
   html.dragging *{cursor:grabbing!important}
 
+  /* ---------- ZAMČENÉ KARTIČKY (iron-man / given) ---------- */
+  .pcard.locked{cursor:default;border-style:solid}
+  .pcard .lockb{position:absolute;top:2px;right:3px;font-size:9px;line-height:1;opacity:.75}
+
   /* ---------- POŽADAVKY ---------- */
   .score{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
   .score b{font-size:26px}
@@ -164,6 +168,7 @@ try{
   <div class="ctrls">
     <label class="muted" style="font-size:12px">Level</label>
     <select id="levelSel"></select>
+    <button id="editBtn" class="ghost" title="Vytvořit / upravit vlastní level">Editor</button>
     <button id="saveBtn" class="ghost">Uložit / Načíst</button>
     <button id="themeBtn" class="ghost" title="Světlý / tmavý režim">◐</button>
   </div>
@@ -251,6 +256,40 @@ const LEVELS=[
       {id:"g4", type:"lunch_break", p:{cls:"1.A", period:4}, label:"1.A má 4. hodinu volnou (oběd)."},
       {id:"g5", type:"subject_time", p:{subject:"CAD", cls:"2.B", maxPeriod:4}, label:"CAD (2.B) je dopoledne (do 4. hodiny)."},
     ]
+  },
+  {
+    id:"l3", name:"3 · Iron-man: nadstavba",
+    desc:"Rozvrh z levelu 2 už platí (zamčené kartičky 🔒) — dostav nové hodiny kolem něj. Hraješ-li iron-man, přenese se tvoje pozice z L2; jinak vzorové řešení.",
+    weeks:["Lichý","Sudý"], periods:6,
+    carryFrom:"l2", // iron-man: autosave L2 nahradí výchozí given níž
+    cards:[
+      // základ = kartičky L2 (zamčené přes given / carryFrom)
+      {id:"a", class:"1.A", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:2},
+      {id:"b", class:"1.A", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:1},
+      {id:"c", class:"1.A", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"D1", building:"H59",  duration:2},
+      {id:"d", class:"1.A", subject:"Sítě",         field:"IT",  teacher:"Jan",   room:"L1", building:"Š101", duration:1},
+      {id:"e", class:"2.B", subject:"Programování", field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:1},
+      {id:"f", class:"2.B", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D2", building:"H59",  duration:2},
+      {id:"g", class:"2.B", subject:"Elektronika",  field:"ELE", teacher:"Jan",   room:"D1", building:"H59",  duration:1},
+      {id:"h", class:"2.B", subject:"Databáze",     field:"IT",  teacher:"Eva",   room:"U2", building:"Š101", duration:1},
+      // nové hodiny k dostavění
+      {id:"i", class:"1.A", subject:"Web",          field:"IT",  teacher:"Eva",   room:"L1", building:"Š101", duration:1},
+      {id:"j", class:"2.B", subject:"Sítě",         field:"IT",  teacher:"Jan",   room:"L1", building:"Š101", duration:2},
+      {id:"k", class:"1.A", subject:"CAD",          field:"STR", teacher:"Lucie", room:"D2", building:"H59",  duration:1},
+      {id:"l", class:"2.B", subject:"Algoritmy",    field:"IT",  teacher:"Petr",  room:"U1", building:"Š101", duration:1},
+    ],
+    given:{ // vzorové řešení L2 (použije se, když carryFrom nic nepřinese)
+      a:{w:0,d:3,p:1}, b:{w:0,d:0,p:1}, c:{w:0,d:1,p:1}, d:{w:0,d:2,p:1},
+      e:{w:0,d:0,p:4}, f:{w:0,d:0,p:2}, g:{w:0,d:1,p:3}, h:{w:0,d:2,p:2},
+    },
+    goals:[
+      {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
+      {id:"g2", type:"teacher_time", p:{teacher:"Lucie", maxPeriod:4}, label:"Lucie učí jen dopoledne (končí do 4. hodiny)."},
+      {id:"g3", type:"subject_week", p:{subject:"Sítě", cls:"2.B", week:1}, label:"Sítě 2.B padnou do sudého týdne."},
+      {id:"g4", type:"class_no_gaps", p:{cls:"1.A"}, label:"1.A nemá v rozvrhu okno."},
+      {id:"g5", type:"max_per_day", p:{cls:"2.B", max:3}, label:"2.B nemá víc než 3 hodiny denně."},
+      {id:"g6", type:"subject_day", p:{subject:"Algoritmy", cls:"2.B", day:4}, label:"Algoritmy 2.B jsou v pátek."},
+    ]
   }
 ];
 
@@ -292,7 +331,8 @@ let LVL=LEVELS[0];
 // view = dimenze pohledu na rozvrh: "class" (hraní), "teacher"/"room" (jen čtení).
 // active = vybraná entita v dané dimenzi (název třídy / učitele / učebny).
 // pickedFrom = původní pozice zvednuté kartičky (Esc / zrušené tažení ji vrací zpět).
-const S={ placements:{}, selected:null, view:"class", active:null, pickedFrom:null };
+// locked = id kartiček zamčených levelem (given / iron-man carryFrom) — nejde s nimi hýbat.
+const S={ placements:{}, selected:null, view:"class", active:null, pickedFrom:null, locked:new Set() };
 
 function card(id){ return LVL.cards.find(c=>c.id===id); }
 function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
@@ -406,6 +446,18 @@ function evalGoal(g){
       }
       return true;
     }
+    case "teacher_time":{ // okno / zakázané hodiny či dny pro učitele
+      const fn=c=>c.teacher===P.teacher;
+      if(!allPlaced(fn)) return false;
+      return placedCardsFor(fn).every(x=>{
+        const s=x.pl.p, e=x.pl.p+x.c.duration-1;
+        if(P.minPeriod && s<P.minPeriod) return false;
+        if(P.maxPeriod && e>P.maxPeriod) return false;
+        if(P.forbidDays && P.forbidDays.includes(x.pl.d)) return false;
+        if(P.forbidPeriods){ for(let k=s;k<=e;k++) if(P.forbidPeriods.includes(k)) return false; }
+        return true;
+      });
+    }
     case "subject_week":{ // předmět (volitelně dané třídy) se učí jen v daném týdnu
       const fn=c=>c.subject===P.subject && (!P.cls||c.class===P.cls);
       if(!allPlaced(fn)) return false;
@@ -430,10 +482,12 @@ function evalGoal(g){
 }
 
 /* =====================================================================
-   ŘEŠIČ — "Náhodně".  Bere aktuální (ručně) umístěné jako pevné a zkouší
-   doplnit zbytek tak, aby nevznikl žádný TVRDÝ konflikt. Randomizovaný
-   backtracking se stropem; když nedoplní vše, vrátí nejlepší částečné.
-   Měkké cíle (goals) ignoruje — splnit je je úkol hráče.
+   ŘEŠIČ — "Náhodně".  Bere aktuální (ručně) umístěné a zamčené jako pevné
+   a zkouší doplnit zbytek tak, aby nevznikl žádný TVRDÝ konflikt.
+   Randomizovaný backtracking se stropem; delší bloky se zkoušejí dřív
+   (hůř se umisťují). Když nedoplní vše, vrátí nejlepší částečné a nahlásí,
+   který tvrdý požadavek doplnění zablokoval. Volitelně (smart) zkouší víc
+   pokusů a vybere ten s nejvíc splněnými měkkými cíli.
    ===================================================================== */
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 function startSlots(c){
@@ -442,10 +496,10 @@ function startSlots(c){
     if(fits(c,p)) out.push({w,d,p});
   return out;
 }
-function randomFill(){
-  const fixed={...S.placements};
-  const todo=shuffle(LVL.cards.filter(c=>!fixed[c.id]).map(c=>c.id));
-  let budget=200000, best={...fixed}, bestN=Object.keys(fixed).length;
+function fillOnce(fixed,budget){ // jeden pokus: vrací kompletní, nebo nejlepší částečné placements
+  const todo=shuffle(LVL.cards.filter(c=>!fixed[c.id]).map(c=>c.id))
+    .sort((a,b)=>card(b).duration-card(a).duration); // stabilní sort: delší bloky dřív, uvnitř náhodně
+  let best={...fixed}, bestN=Object.keys(fixed).length;
   function bt(i,acc){
     if(budget--<=0) return null;
     if(Object.keys(acc).length>bestN){ bestN=Object.keys(acc).length; best={...acc}; }
@@ -462,14 +516,57 @@ function randomFill(){
     }
     return null;
   }
-  const res=bt(0,{...fixed}), result=res||best;
+  return bt(0,{...fixed})||best;
+}
+function goalsMetIn(pl){ // kolik měkkých cílů splňuje dané rozmístění
+  const saved=S.placements; S.placements=pl; let n=0;
+  try{ LVL.goals.forEach(g=>{ if(evalGoal(g)) n++; }); }finally{ S.placements=saved; }
+  return n;
+}
+function blockNote(pl){ // proč se zbylé kartičky nevešly (dominantní tvrdý blok)
+  const missing=LVL.cards.filter(c=>!pl[c.id]);
+  const parts=missing.slice(0,2).map(c=>{
+    let t=0,r=0,cl=0;
+    for(const s of startSlots(c)){
+      let ct=false,cr=false,cc=false;
+      for(const cell of cells(c.id,s)) for(const oid in pl){
+        if(oid===c.id) continue;
+        const oc=card(oid);
+        for(const ocell of cells(oid,pl[oid]))
+          if(ocell.w===cell.w&&ocell.d===cell.d&&ocell.p===cell.p){
+            if(oc.teacher===c.teacher)ct=true;
+            if(oc.room===c.room)cr=true;
+            if(oc.class===c.class)cc=true;
+          }
+      }
+      if(ct)t++; if(cr)r++; if(cc)cl++;
+    }
+    const m=Math.max(t,r,cl);
+    const why=m===0?"blok se nevejde":m===t?"učitel "+c.teacher+" nemá volno":m===r?"učebna "+c.room+" je plná":"třída "+c.class+" nemá místo";
+    return c.subject+" "+c.class+" ("+why+")";
+  });
+  return "tvrdé požadavky zablokovaly: "+parts.join(", ")+(missing.length>2?" a další":"")+".";
+}
+function randomFill(smart){
+  const fixed={...S.placements};
+  let result=fillOnce(fixed,200000), goalNote="";
+  if(smart){ // víc pokusů v časovém boxu, vyber podle (cíle, počet umístěných)
+    let bestScore=goalsMetIn(result)*1000+Object.keys(result).length;
+    const t0=performance.now();
+    while(performance.now()-t0<700){
+      const r=fillOnce(fixed,20000);
+      const sc=goalsMetIn(r)*1000+Object.keys(r).length;
+      if(sc>bestScore){ bestScore=sc; result=r; }
+    }
+    goalNote=" Splněno cílů: "+goalsMetIn(result)+"/"+LVL.goals.length+".";
+  }
   if(JSON.stringify(result)!==JSON.stringify(S.placements)) pushHist();
   S.selected=null; S.pickedFrom=null;
   S.placements=result;
   const n=Object.keys(S.placements).length, tot=LVL.cards.length;
   render();
-  setStatus(n===tot ? "Náhodně rozmístěno všech "+tot+" kartiček (bez tvrdých konfliktů)."
-                    : "Rozmístěno "+n+" z "+tot+" — tvrdé požadavky neumožnily doplnit zbytek.");
+  setStatus(n===tot ? "Náhodně rozmístěno všech "+tot+" kartiček (bez tvrdých konfliktů)."+goalNote
+                    : "Rozmístěno "+n+" z "+tot+" — "+blockNote(result));
   autosave();
 }
 
@@ -483,12 +580,19 @@ function randomFill(){
    Z konzole: await checkSolvable("l2").
    ===================================================================== */
 function checkSolvableAsync(levelId, samples, onProgress){
-  const lvl=LEVELS.find(l=>l.id===(levelId||LVL.id)); if(!lvl) return null;
+  // levelId: id NEBO přímo objekt levelu (editor testuje ještě neuložené levely)
+  const lvl=typeof levelId==="object"&&levelId ? levelId : LEVELS.find(l=>l.id===(levelId||LVL.id));
+  if(!lvl) return null;
   const M=samples||300;
+  // zamčené kartičky jsou pevný základ každého vzorku: u rozehraného levelu
+  // aktuální zamčené pozice, jinak given z dat levelu
+  const fixedBase={};
+  if(lvl===LVL) S.locked.forEach(id=>{ if(S.placements[id]) fixedBase[id]={...S.placements[id]}; });
+  else if(lvl.given) for(const id in lvl.given) fixedBase[id]={...lvl.given[id]};
   const st={i:0, complete:0, wins:0, gm:lvl.goals.map(()=>0), cancelled:false};
   const base={}; let baseReady=false;
   function randomComplete(){ // volat jen uvnitř chunku (čte globální LVL)
-    const order=shuffle(lvl.cards.map(c=>c.id)), plc={}; let budget=60000;
+    const order=shuffle(lvl.cards.filter(c=>!fixedBase[c.id]).map(c=>c.id)), plc={...fixedBase}; let budget=60000;
     function bt(i){
       if(budget--<=0) return false;
       if(i>=order.length) return true;
@@ -509,7 +613,7 @@ function checkSolvableAsync(levelId, samples, onProgress){
       const savedLVL=LVL, savedPl=S.placements;
       LVL=lvl; // startSlots/fits/card/hasHardConflict/evalGoal čtou globální LVL a S
       try{
-        if(!baseReady){ lvl.cards.forEach(c=>base[c.id]=startSlots(c)); baseReady=true; }
+        if(!baseReady){ lvl.cards.forEach(c=>{ if(!fixedBase[c.id]) base[c.id]=startSlots(c); }); baseReady=true; }
         const t0=performance.now();
         while(st.i<M && performance.now()-t0<25){
           st.i++;
@@ -539,6 +643,7 @@ function restoreLifted(){ // vrátí zvednutou (zatím neumístěnou) kartičku 
   S.pickedFrom=null;
 }
 function pickUp(id){
+  if(S.locked.has(id)){ setStatus("Tahle kartička je zamčená — je daná levelem."); return; }
   restoreLifted(); // výběr jiné kartičky vrací tu předchozí zvednutou zpět
   S.selected=id;
   S.view="class"; S.active=card(id).class; // umisťovat se dá jen v pohledu po třídách
@@ -546,8 +651,9 @@ function pickUp(id){
   setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu třídy "+card(id).class+".");
   render();
 }
-function unplace(id){ pushHist(); delete S.placements[id]; if(S.selected===id){S.selected=null;S.pickedFrom=null;} render(); autosave(); }
+function unplace(id){ if(S.locked.has(id)) return; pushHist(); delete S.placements[id]; if(S.selected===id){S.selected=null;S.pickedFrom=null;} render(); autosave(); }
 function tryPlace(id,w,d,p){
+  if(S.locked.has(id)) return;
   const c=card(id);
   if(!fits(c,p)){ setStatus("Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
   // vrácení kartičky na totéž místo není krok historie
@@ -560,7 +666,9 @@ function tryPlace(id,w,d,p){
 }
 function clearAll(){
   if(Object.keys(S.placements).length||S.pickedFrom) pushHist();
-  S.placements={}; S.selected=null; S.pickedFrom=null; render(); autosave(); setStatus("Rozvrh vymazán.");
+  const keep={}; S.locked.forEach(id=>{ if(S.placements[id]) keep[id]=S.placements[id]; }); // zamčené zůstávají
+  S.placements=keep; S.selected=null; S.pickedFrom=null; render(); autosave();
+  setStatus(S.locked.size?"Rozvrh vymazán — zamčené kartičky zůstávají.":"Rozvrh vymazán.");
 }
 
 let statusEl;
@@ -614,6 +722,7 @@ const DRAG={ptr:null,id:null,from:null,el:null,ghost:null,ox:0,oy:0,sx:0,sy:0,lx
 
 function armDrag(ev,id,fromPl){
   if(DRAG.armed||DRAG.dragging||!ev.isPrimary||ev.button!==0) return;
+  if(S.locked.has(id)) return; // zamčená kartička se netáhne
   if(ev.target.closest(".x")) return; // křížek = odebrat, ne táhnout
   DRAG.armed=true; DRAG.ptr=ev.pointerId; DRAG.id=id; DRAG.from=fromPl||null;
   DRAG.el=ev.currentTarget; DRAG.touch=ev.pointerType!=="mouse";
@@ -859,19 +968,23 @@ function renderSchedule(reasons){
       const sub = S.view==="teacher" ? c.class+" · "+c.room
                 : S.view==="room"    ? c.class+" · "+c.teacher
                 : c.teacher+" · "+c.room;
+      const locked=S.locked.has(x.id);
       const props={
-        class:"pcard"+(conf?" conflict":"")+(playing?"":" ro"), style:st,
+        class:"pcard"+(conf?" conflict":"")+(playing?"":" ro")+(locked?" locked":""), style:st,
         title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
       };
-      if(playing){
+      if(playing&&!locked){
         props.onclick=ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); };
         props.onpointerdown=ev=>armDrag(ev,x.id,x.pl);
+      }else if(locked){
+        props.title+=" — zamčená kartička (daná levelem)";
       }else{
         props.title+=" — klikni pro přechod do pohledu třídy "+c.class;
         props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
       }
       grid.append(el("div",props,
-        playing?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
+        playing&&!locked?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
+        locked?el("div",{class:"lockb"},"🔒"):null,
         el("div",{class:"subj"},c.subject),
         el("div",{class:"sub"},sub),
         el("div",{class:"sub"},c.building)
@@ -936,7 +1049,9 @@ function importStr(str,opts){
     const o=JSON.parse(b64d(str.trim()));
     const lv=LEVELS.find(l=>l.id===o.level); if(!lv) throw 0;
     loadLevel(lv.id,false);
-    S.placements=readPlacements(o); render();
+    const imported=readPlacements(o); // zamčené pozice drží applyGiven, import je nepřepisuje
+    for(const id in imported){ if(!S.locked.has(id)) S.placements[id]=imported[id]; }
+    render();
     if(!opts||opts.autosave!==false) autosave();
     setStatus("Pozice načtena.");
     return true;
@@ -946,7 +1061,11 @@ function autosave(){ if(Store) Store.set("auto:"+LVL.id, exportStr()); }
 async function loadAutosave(){
   if(!Store) return;
   const s=await Store.get("auto:"+LVL.id);
-  if(s){ try{ S.placements=readPlacements(JSON.parse(b64d(s))); render(); }catch(e){} }
+  if(s){ try{
+    const saved=readPlacements(JSON.parse(b64d(s)));
+    for(const id in saved){ if(!S.locked.has(id)) S.placements[id]=saved[id]; }
+    render();
+  }catch(e){} }
 }
 function copyText(t){ // clipboard API s fallbackem (file:// a starší prohlížeče)
   (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject())
@@ -955,6 +1074,21 @@ function copyText(t){ // clipboard API s fallbackem (file:// a starší prohlí�
 }
 
 /* ---------- MODÁLY ---------- */
+function randomModal(){ // potvrzení „Náhodně“ + volba chytrého režimu (měkké cíle)
+  const chk=el("input",{type:"checkbox"});
+  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
+  ov.append(el("div",{class:"modal"},
+    el("h3",{},"Náhodně rozmístit?"),
+    el("p",{},"Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné i zamčené zůstanou."),
+    el("label",{style:{display:"flex",gap:"8px",alignItems:"center",fontSize:"13px",margin:"0 0 14px",cursor:"pointer",color:"var(--ink-soft)"}},
+      chk,"Zkusit splnit i herní cíle (víc pokusů, ~1 s)"),
+    el("div",{class:"row"},
+      el("button",{onclick:()=>ov.remove()},"Zrušit"),
+      el("button",{class:"primary",onclick:()=>{ ov.remove(); randomFill(chk.checked); }},"Rozmístit")
+    )
+  ));
+  document.body.append(ov);
+}
 function confirmModal(title,text,onYes,yesLabel){
   const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)close();}});
   function close(){ov.remove();}
@@ -1062,15 +1196,35 @@ function solvableModal(){
 /* =====================================================================
    LEVELY / TÉMA / INIT
    ===================================================================== */
+function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man přenos (carryFrom)
+  S.locked=new Set();
+  const lockAll=src=>{ for(const id in src){ if(validPlacement(id,src[id])){ S.placements[id]={w:src[id].w,d:src[id].d,p:src[id].p}; S.locked.add(id); } } };
+  lockAll(LVL.given||{});
+  if(LVL.carryFrom && Store){
+    return Store.get("auto:"+LVL.carryFrom).then(s=>{
+      if(!s) return; // bez rozehraného zdroje zůstává výchozí given
+      try{
+        const pl=JSON.parse(b64d(s)).pl||{};
+        if(!Object.keys(pl).length) return;
+        S.locked.forEach(id=>{ delete S.placements[id]; }); // přenos nahrazuje výchozí given
+        S.locked=new Set();
+        lockAll(pl);
+        render();
+      }catch(e){}
+    });
+  }
+  return Promise.resolve();
+}
 function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
   S.placements={}; S.selected=null; S.pickedFrom=null; S.view="class"; S.active=classesOf()[0];
   HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
+  const ready=applyGiven();
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
   render();
   setStatus("Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).");
-  if(doAutoload!==false) loadAutosave();
+  if(doAutoload!==false) ready.then(loadAutosave);
 }
 
 function setTheme(t){
@@ -1079,28 +1233,137 @@ function setTheme(t){
 }
 
 const DONE=new Set(); // id dokončených levelů (✓ v selectu)
-function refreshLevelSel(){
-  const sel=document.getElementById("levelSel");
-  [...sel.options].forEach(o=>{ const l=LEVELS.find(x=>x.id===o.value); if(l) o.textContent=l.name+(DONE.has(l.id)?" ✓":""); });
+function buildLevelSel(){ // přestaví přepínač levelů (✓ dokončené, * vlastní)
+  const sel=document.getElementById("levelSel"); const cur=LVL?LVL.id:null;
+  sel.textContent="";
+  LEVELS.forEach(l=>sel.append(el("option",{value:l.id},l.name+(DONE.has(l.id)?" ✓":"")+(l.custom?" *":""))));
+  if(cur&&LEVELS.some(l=>l.id===cur)) sel.value=cur;
 }
 function markDone(id){
   if(DONE.has(id)) return;
   DONE.add(id);
   if(Store) Store.set("done", JSON.stringify([...DONE]));
-  refreshLevelSel();
+  buildLevelSel();
+}
+
+/* =====================================================================
+   EDITOR LEVELŮ — vlastní levely jako JSON (stejný tvar jako v poli
+   LEVELS). Ukládají se přes Store (klíč "customLevels"), v přepínači
+   mají hvězdičku. Validace + test řešitelnosti před uložením.
+   ===================================================================== */
+const GOAL_TYPES=["all_placed","subject_time","subject_day","subject_week","teacher_free_day",
+  "teacher_only_week","teacher_transition_gap","teacher_time","class_no_gaps","max_per_day","lunch_break"];
+function validateLevel(o){
+  const errs=[];
+  if(!o||typeof o!=="object") return ["Není to objekt."];
+  if(!o.id||!/^[\w-]+$/.test(o.id)) errs.push("Chybí/špatné id (jen písmena, čísla, - a _).");
+  if(LEVELS.some(l=>l.id===o.id&&!l.custom)) errs.push("id „"+o.id+"“ koliduje s vestavěným levelem.");
+  if(!o.name) errs.push("Chybí name.");
+  if(!Array.isArray(o.weeks)||o.weeks.length<1||o.weeks.length>2) errs.push("weeks musí být pole 1–2 názvů týdnů.");
+  if(!Number.isInteger(o.periods)||o.periods<1||o.periods>12) errs.push("periods musí být celé číslo 1–12.");
+  if(!Array.isArray(o.cards)||!o.cards.length) errs.push("cards musí být neprázdné pole.");
+  else{
+    const ids=new Set();
+    o.cards.forEach((c,i)=>{
+      ["id","class","subject","teacher","room","building"].forEach(k=>{ if(!c||!c[k]) errs.push("cards["+i+"]: chybí "+k+"."); });
+      if(c&&c.id){ if(ids.has(c.id)) errs.push("cards["+i+"]: duplicitní id „"+c.id+"“."); ids.add(c.id); }
+      if(c&&!["IT","ELE","STR"].includes(c.field)) errs.push("cards["+i+"]: field musí být IT | ELE | STR.");
+      if(c&&(!Number.isInteger(c.duration)||c.duration<1||c.duration>3)) errs.push("cards["+i+"]: duration musí být 1–3.");
+    });
+    if(o.given&&Array.isArray(o.cards)) for(const id in o.given){
+      const c=o.cards.find(x=>x&&x.id===id), pl=o.given[id];
+      if(!c){ errs.push("given: neznámá karta „"+id+"“."); continue; }
+      if(!pl||!Number.isInteger(pl.w)||pl.w<0||pl.w>=o.weeks.length
+        ||!Number.isInteger(pl.d)||pl.d<0||pl.d>=DAYS.length
+        ||!Number.isInteger(pl.p)||pl.p<1||pl.p+c.duration-1>o.periods) errs.push("given."+id+": neplatná pozice.");
+    }
+  }
+  if(!Array.isArray(o.goals)) errs.push("goals musí být pole.");
+  else o.goals.forEach((g,i)=>{
+    if(!g||!GOAL_TYPES.includes(g.type)) errs.push("goals["+i+"]: neznámý type „"+(g&&g.type)+"“. Povolené: "+GOAL_TYPES.join(", ")+".");
+    if(!g||!g.label) errs.push("goals["+i+"]: chybí label.");
+  });
+  if(o.carryFrom&&!LEVELS.some(l=>l.id===o.carryFrom)&&o.carryFrom!==o.id) errs.push("carryFrom: level „"+o.carryFrom+"“ neexistuje.");
+  return errs;
+}
+function saveCustoms(){ if(Store) Store.set("customLevels", JSON.stringify(LEVELS.filter(l=>l.custom))); }
+async function loadCustoms(){
+  if(!Store) return;
+  try{
+    const s=await Store.get("customLevels");
+    JSON.parse(s||"[]").forEach(o=>{ o.custom=true; if(!LEVELS.some(l=>l.id===o.id)) LEVELS.push(o); });
+  }catch(e){}
+  buildLevelSel();
+}
+function editorModal(){
+  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
+  const ta=el("textarea",{spellcheck:"false",style:{minHeight:"260px"}});
+  const msg=el("div",{style:{fontSize:"12px",whiteSpace:"pre-wrap",margin:"6px 0",minHeight:"16px"}});
+  const say=(t,bad)=>{ msg.textContent=t; msg.style.color=bad?"var(--bad)":"var(--ok)"; };
+  const parse=()=>{ try{ return JSON.parse(ta.value); }catch(e){ say("Neplatný JSON: "+e.message,true); return null; } };
+  const parseValid=()=>{ const o=parse(); if(!o) return null;
+    const errs=validateLevel(o); if(errs.length){ say(errs.join("\n"),true); return null; } return o; };
+  const tplSel=el("select",{});
+  tplSel.append(el("option",{value:""},"Nový podle šablony…"));
+  LEVELS.forEach(l=>tplSel.append(el("option",{value:l.id},l.name)));
+  tplSel.addEventListener("change",()=>{
+    const l=LEVELS.find(x=>x.id===tplSel.value); if(!l) return;
+    const o=JSON.parse(JSON.stringify(l)); delete o.custom;
+    o.id="c-"+Math.random().toString(36).slice(2,7); o.name=l.name+" (kopie)";
+    ta.value=JSON.stringify(o,null,2); say("",false);
+  });
+  const custBox=el("div",{});
+  function listCustoms(){
+    custBox.textContent="";
+    const cs=LEVELS.filter(l=>l.custom);
+    if(!cs.length){ custBox.append(el("p",{style:{marginTop:"8px"}},"Zatím žádné vlastní levely.")); return; }
+    cs.forEach(l=>custBox.append(el("div",{class:"slot-row"},
+      el("span",{class:"name"},l.name+" ("+l.id+")"),
+      el("button",{onclick:()=>{ const o=JSON.parse(JSON.stringify(l)); delete o.custom; ta.value=JSON.stringify(o,null,2); say("",false); }},"Upravit"),
+      el("button",{onclick:()=>{ LEVELS.splice(LEVELS.indexOf(l),1); saveCustoms(); buildLevelSel(); listCustoms(); if(LVL===l) loadLevel(LEVELS[0].id); }},"Smazat")
+    )));
+  }
+  ov.append(el("div",{class:"modal",style:{maxWidth:"640px"}},
+    el("h3",{},"Editor levelů"),
+    el("p",{},"Level je JSON stejného tvaru jako vestavěné levely (cards, goals, volitelně given/carryFrom). Typy cílů a parametry popisuje CLAUDE.md."),
+    el("div",{class:"row",style:{justifyContent:"flex-start",marginBottom:"8px"}},tplSel),
+    ta, msg,
+    el("div",{class:"row",style:{justifyContent:"flex-start"}},
+      el("button",{onclick:()=>{ if(parseValid()) say("Level je v pořádku.",false); }},"Zkontrolovat"),
+      el("button",{onclick:()=>{
+        const o=parseValid(); if(!o) return;
+        say("Testuju řešitelnost…",false);
+        checkSolvableAsync(o,200,st=>{ say("Testuju řešitelnost… vzorek "+st.i+"/200, výher "+st.wins+".",false); })
+          .promise.then(r=>{ if(!ov.isConnected) return;
+            say(r.solvable?("Řešitelné — výhra ≈"+r.winRatePct+" % náhodných rozvrhů."):"Nenašla se výhra (200 vzorků) — level je hodně těžký nebo neřešitelný.",!r.solvable); });
+      }},"Řešitelnost"),
+      el("button",{class:"primary",onclick:()=>{
+        const o=parseValid(); if(!o) return;
+        o.custom=true;
+        const i=LEVELS.findIndex(l=>l.id===o.id&&l.custom);
+        if(i>=0) LEVELS[i]=o; else LEVELS.push(o);
+        saveCustoms(); buildLevelSel(); listCustoms();
+        say("Uloženo — level „"+o.name+"“ je v přepínači.",false);
+      }},"Uložit level")
+    ),
+    el("h3",{style:{marginTop:"16px",fontSize:"14px"}},"Vlastní levely"),
+    custBox,
+    el("div",{class:"row",style:{marginTop:"10px"}},el("button",{onclick:()=>ov.remove()},"Zavřít"))
+  ));
+  document.body.append(ov);
+  listCustoms();
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
   statusEl=document.getElementById("status");
-  const sel=document.getElementById("levelSel");
-  LEVELS.forEach(l=>sel.append(el("option",{value:l.id},l.name)));
-  sel.addEventListener("change",()=>loadLevel(sel.value));
+  buildLevelSel();
+  document.getElementById("levelSel").addEventListener("change",ev=>loadLevel(ev.target.value));
 
   document.getElementById("clearBtn").onclick=()=>confirmModal(
-    "Smazat rozvrh?","Všechny kartičky se vrátí do seznamu. Vrátit to jde tlačítkem ↶ Zpět.",clearAll,"Smazat");
-  document.getElementById("randomBtn").onclick=()=>confirmModal(
-    "Náhodně rozmístit?","Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné zůstanou.",randomFill,"Rozmístit");
+    "Smazat rozvrh?","Všechny kartičky se vrátí do seznamu (zamčené zůstávají). Vrátit to jde tlačítkem ↶ Zpět.",clearAll,"Smazat");
+  document.getElementById("randomBtn").onclick=randomModal;
   document.getElementById("saveBtn").onclick=saveModal;
+  document.getElementById("editBtn").onclick=editorModal;
   document.getElementById("checkBtn").onclick=solvableModal;
   document.getElementById("undoBtn").onclick=undo;
   document.getElementById("redoBtn").onclick=redo;
@@ -1110,7 +1373,8 @@ window.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("themeBtn").onclick=()=>
     setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
 
-  if(Store) Store.get("done").then(s=>{ try{ JSON.parse(s||"[]").forEach(id=>DONE.add(id)); }catch(e){} refreshLevelSel(); });
+  if(Store) Store.get("done").then(s=>{ try{ JSON.parse(s||"[]").forEach(id=>DONE.add(id)); }catch(e){} buildLevelSel(); });
+  loadCustoms(); // vlastní levely z úložiště (async, doplní se do přepínače)
 
   document.addEventListener("keydown",e=>{
     if(e.target && (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
