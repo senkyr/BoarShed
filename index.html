@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skládání rozvrhu</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐗%3C/text%3E%3C/svg%3E">
+<script>
+/* Motiv co nejdřív (před prvním paintem), ať tmavý režim neblikne světlým pozadím.
+   Uloženou volbu čte synchronně z localStorage; bez ní platí systémová preference. */
+try{
+  var t=localStorage.getItem("theme");
+  document.documentElement.setAttribute("data-theme",
+    t||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"));
+}catch(e){document.documentElement.setAttribute("data-theme","light")}
+</script>
 <style>
   /* ---------- TÉMA / PROMĚNNÉ ---------- */
   :root{
@@ -30,12 +40,13 @@
   h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);
     color:var(--ink);border-radius:8px;padding:7px 12px;transition:.12s}
-  button:hover{border-color:var(--accent-soft)}
+  button:hover:not(:disabled){border-color:var(--accent-soft)}
+  button:disabled{opacity:.45;cursor:default}
   button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
   button.primary:hover{filter:brightness(1.06)}
   button.ghost{background:transparent}
-  select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+  select,input[type=text]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
   .muted{color:var(--ink-soft)}
 
   header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
@@ -100,6 +111,14 @@
   .pcard .x{position:absolute;top:2px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
     border-radius:5px;font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line)}
   .pcard .x:hover{color:var(--bad);border-color:var(--bad)}
+
+  /* ---------- POINTER DRAG ---------- */
+  .card,.pcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .card.drag-src{opacity:.35}
+  .drag-ghost{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:.92;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);will-change:transform}
+  html.dragging{user-select:none}
+  html.dragging *{cursor:grabbing!important}
 
   /* ---------- POŽADAVKY ---------- */
   .score{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
@@ -168,6 +187,8 @@
 </div>
 
 <div class="toolbar">
+  <button id="undoBtn" title="Zpět (Ctrl+Z)" disabled>↶ Zpět</button>
+  <button id="redoBtn" title="Znovu (Ctrl+Y)" disabled>↷ Znovu</button>
   <button id="clearBtn">Smazat rozvrh</button>
   <button id="randomBtn" class="primary">Náhodně rozmístit</button>
   <button id="checkBtn" class="ghost" title="Zkontrolovat, zda je level vůbec řešitelný">Řešitelnost?</button>
@@ -203,7 +224,7 @@ const LEVELS=[
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
-      {id:"g2", type:"subject_time", p:{subject:"Programování", maxPeriod:4}, label:"Programování (blok) začíná do 4. hodiny."},
+      {id:"g2", type:"subject_time", p:{subject:"Programování", maxPeriod:4}, label:"Programování (blok) končí do 4. hodiny."},
       {id:"g3", type:"teacher_free_day", p:{teacher:"Jan"}, label:"Jan má jeden den volno."},
       {id:"g4", type:"class_no_gaps", p:{cls:"1.A"}, label:"1.A nemá v rozvrhu okno."},
       {id:"g5", type:"subject_day", p:{subject:"Sítě", day:0}, label:"Sítě jsou v pondělí."},
@@ -270,7 +291,8 @@ const Store=(()=>{
 let LVL=LEVELS[0];
 // view = dimenze pohledu na rozvrh: "class" (hraní), "teacher"/"room" (jen čtení).
 // active = vybraná entita v dané dimenzi (název třídy / učitele / učebny).
-const S={ placements:{}, selected:null, view:"class", active:null, over:null };
+// pickedFrom = původní pozice zvednuté kartičky (Esc / zrušené tažení ji vrací zpět).
+const S={ placements:{}, selected:null, view:"class", active:null, pickedFrom:null };
 
 function card(id){ return LVL.cards.find(c=>c.id===id); }
 function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
@@ -440,10 +462,11 @@ function randomFill(){
     }
     return null;
   }
-  const res=bt(0,{...fixed});
-  S.placements=res||best;
+  const res=bt(0,{...fixed}), result=res||best;
+  if(JSON.stringify(result)!==JSON.stringify(S.placements)) pushHist();
+  S.selected=null; S.pickedFrom=null;
+  S.placements=result;
   const n=Object.keys(S.placements).length, tot=LVL.cards.length;
-  S.selected=null;
   render();
   setStatus(n===tot ? "Náhodně rozmístěno všech "+tot+" kartiček (bez tvrdých konfliktů)."
                     : "Rozmístěno "+n+" z "+tot+" — tvrdé požadavky neumožnily doplnit zbytek.");
@@ -454,14 +477,17 @@ function randomFill(){
    KONTROLA ŘEŠITELNOSTI — pomůcka pro ladění obtížnosti levelů.
    Vzorkuje náhodné KOMPLETNÍ rozvrhy (bez tvrdých konfliktů) a měří, jak
    často padne výhra (všechny cíle splněné). 0 výher = level je extrémně
-   těžký nebo neřešitelný. Lze volat i z konzole: checkSolvable("l2").
+   těžký nebo neřešitelný. Běží chunkovaně (časové boxy ~25 ms), aby
+   nezamrzlo UI; globální LVL/S se prohazují jen UVNITŘ synchronního chunku
+   (try/finally), mezi chunky je hra v konzistentním stavu.
+   Z konzole: await checkSolvable("l2").
    ===================================================================== */
-function checkSolvable(levelId, samples){
+function checkSolvableAsync(levelId, samples, onProgress){
   const lvl=LEVELS.find(l=>l.id===(levelId||LVL.id)); if(!lvl) return null;
-  const M=samples||300, savedLVL=LVL, savedPl=S.placements;
-  LVL=lvl; // startSlots/fits/card/hasHardConflict/evalGoal čtou globální LVL a S
-  const base={}; lvl.cards.forEach(c=>base[c.id]=startSlots(c));
-  function randomComplete(){
+  const M=samples||300;
+  const st={i:0, complete:0, wins:0, gm:lvl.goals.map(()=>0), cancelled:false};
+  const base={}; let baseReady=false;
+  function randomComplete(){ // volat jen uvnitř chunku (čte globální LVL)
     const order=shuffle(lvl.cards.map(c=>c.id)), plc={}; let budget=60000;
     function bt(i){
       if(budget--<=0) return false;
@@ -472,42 +498,227 @@ function checkSolvable(levelId, samples){
     }
     return bt(0)?plc:null;
   }
-  let complete=0, wins=0; const gm=lvl.goals.map(()=>0);
-  for(let it=0; it<M; it++){
-    const plc=randomComplete(); if(!plc) continue;
-    complete++; S.placements=plc;
-    let all=true; lvl.goals.forEach((g,gi)=>{ if(evalGoal(g)) gm[gi]++; else all=false; });
-    if(all) wins++;
+  function result(){
+    return { level:lvl.id, samples:st.i, completeFound:st.complete, wins:st.wins,
+      winRatePct:+(st.wins/Math.max(1,st.complete)*100).toFixed(1), solvable:st.wins>0,
+      perGoal: lvl.goals.map((g,gi)=>({type:g.type, metPct:+(st.gm[gi]/Math.max(1,st.complete)*100).toFixed(0), label:g.label})) };
   }
-  LVL=savedLVL; S.placements=savedPl; // obnov stav rozehrané hry
-  return { level:lvl.id, samples:M, completeFound:complete, wins,
-    winRatePct:+(wins/Math.max(1,complete)*100).toFixed(1), solvable:wins>0,
-    perGoal: lvl.goals.map((g,gi)=>({type:g.type, metPct:+(gm[gi]/Math.max(1,complete)*100).toFixed(0), label:g.label})) };
+  const promise=new Promise(resolve=>{
+    function chunk(){
+      if(st.cancelled||st.i>=M){ resolve(result()); return; }
+      const savedLVL=LVL, savedPl=S.placements;
+      LVL=lvl; // startSlots/fits/card/hasHardConflict/evalGoal čtou globální LVL a S
+      try{
+        if(!baseReady){ lvl.cards.forEach(c=>base[c.id]=startSlots(c)); baseReady=true; }
+        const t0=performance.now();
+        while(st.i<M && performance.now()-t0<25){
+          st.i++;
+          const plc=randomComplete(); if(!plc) continue;
+          st.complete++; S.placements=plc;
+          let all=true; lvl.goals.forEach((g,gi)=>{ if(evalGoal(g)) st.gm[gi]++; else all=false; });
+          if(all) st.wins++;
+        }
+      }finally{ LVL=savedLVL; S.placements=savedPl; } // obnov stav rozehrané hry
+      if(onProgress) onProgress(st,M);
+      setTimeout(chunk,0);
+    }
+    chunk();
+  });
+  return { promise, cancel:()=>{ st.cancelled=true; } };
+}
+function checkSolvable(levelId, samples){ // konzolová zkratka — vrací Promise
+  const r=checkSolvableAsync(levelId,samples);
+  return r?r.promise.then(res=>{ console.log("Řešitelnost levelu "+res.level+":",res); return res; }):null;
 }
 
 /* =====================================================================
    AKCE
    ===================================================================== */
+function restoreLifted(){ // vrátí zvednutou (zatím neumístěnou) kartičku na původní místo
+  if(S.selected && S.pickedFrom) S.placements[S.selected]=S.pickedFrom;
+  S.pickedFrom=null;
+}
 function pickUp(id){
+  restoreLifted(); // výběr jiné kartičky vrací tu předchozí zvednutou zpět
   S.selected=id;
   S.view="class"; S.active=card(id).class; // umisťovat se dá jen v pohledu po třídách
-  if(S.placements[id]) delete S.placements[id]; // zvednutí z rozvrhu
+  if(S.placements[id]){ S.pickedFrom=S.placements[id]; delete S.placements[id]; } // zvednutí z rozvrhu
   setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu třídy "+card(id).class+".");
   render();
 }
-function unplace(id){ delete S.placements[id]; if(S.selected===id)S.selected=null; render(); autosave(); }
+function unplace(id){ pushHist(); delete S.placements[id]; if(S.selected===id){S.selected=null;S.pickedFrom=null;} render(); autosave(); }
 function tryPlace(id,w,d,p){
   const c=card(id);
   if(!fits(c,p)){ setStatus("Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
+  // vrácení kartičky na totéž místo není krok historie
+  if(!(S.selected===id && S.pickedFrom && S.pickedFrom.w===w && S.pickedFrom.d===d && S.pickedFrom.p===p)) pushHist();
+  S.pickedFrom=null;
   S.placements[id]={w,d,p};
   if(S.selected===id) S.selected=null;
   setStatus("Umístěno. Konflikty jsou červené, splněné požadavky vpravo.");
   render(); autosave();
 }
-function clearAll(){ S.placements={}; S.selected=null; render(); autosave(); setStatus("Rozvrh vymazán."); }
+function clearAll(){
+  if(Object.keys(S.placements).length||S.pickedFrom) pushHist();
+  S.placements={}; S.selected=null; S.pickedFrom=null; render(); autosave(); setStatus("Rozvrh vymazán.");
+}
 
 let statusEl;
 function setStatus(t){ if(statusEl) statusEl.textContent=t; }
+
+/* =====================================================================
+   HISTORIE — undo/redo přes snapshoty placements (per-level, jen session).
+   Snapshot počítá zvednutou kartičku na jejím původním místě, takže přesun
+   kartičky je jediný krok Zpět. pushHist() se volá PŘED mutací placements.
+   ===================================================================== */
+const HIST={undo:[],redo:[]};
+function histSnapshot(){
+  const o={...S.placements};
+  if(S.selected&&S.pickedFrom) o[S.selected]=S.pickedFrom;
+  return JSON.stringify(o);
+}
+function pushHist(){
+  const s=histSnapshot();
+  if(HIST.undo[HIST.undo.length-1]===s) return;
+  HIST.undo.push(s); if(HIST.undo.length>50) HIST.undo.shift();
+  HIST.redo.length=0;
+}
+function undo(){
+  if(!HIST.undo.length) return;
+  HIST.redo.push(histSnapshot());
+  S.placements=JSON.parse(HIST.undo.pop());
+  S.selected=null; S.pickedFrom=null; render(); autosave(); setStatus("Vráceno zpět.");
+}
+function redo(){
+  if(!HIST.redo.length) return;
+  HIST.undo.push(histSnapshot());
+  S.placements=JSON.parse(HIST.redo.pop());
+  S.selected=null; S.pickedFrom=null; render(); autosave(); setStatus("Provedeno znovu.");
+}
+function updateUndoBtns(){
+  const u=document.getElementById("undoBtn"),r=document.getElementById("redoBtn");
+  if(u){ u.disabled=!HIST.undo.length; r.disabled=!HIST.redo.length; }
+}
+
+/* =====================================================================
+   POINTER DRAG — jednotné tažení myší i dotykem (pointer events).
+   Klik zůstává plnohodnotnou cestou: tažení začíná až po prahu pohybu
+   (myš 5 px) / podržení 200 ms (dotyk; švih = nativní scroll, browser pošle
+   pointercancel a tím se vše samo odzbrojí). Během tažení se normálně
+   renderuje (drop zóny svítí) — klon kartičky visí na <body> mimo
+   překreslované kontejnery, listenery na dokumentu a pointer capture drží
+   document.body, aby přežil odstranění zdrojového elementu z DOM.
+   ===================================================================== */
+const DRAG={ptr:null,id:null,from:null,el:null,ghost:null,ox:0,oy:0,sx:0,sy:0,lx:0,ly:0,
+  armed:false,dragging:false,touch:false,timer:0,overCell:null,justDropped:false};
+
+function armDrag(ev,id,fromPl){
+  if(DRAG.armed||DRAG.dragging||!ev.isPrimary||ev.button!==0) return;
+  if(ev.target.closest(".x")) return; // křížek = odebrat, ne táhnout
+  DRAG.armed=true; DRAG.ptr=ev.pointerId; DRAG.id=id; DRAG.from=fromPl||null;
+  DRAG.el=ev.currentTarget; DRAG.touch=ev.pointerType!=="mouse";
+  DRAG.sx=DRAG.lx=ev.clientX; DRAG.sy=DRAG.ly=ev.clientY;
+  const r=DRAG.el.getBoundingClientRect(); DRAG.ox=ev.clientX-r.left; DRAG.oy=ev.clientY-r.top;
+  if(DRAG.touch) DRAG.timer=setTimeout(()=>{ if(DRAG.armed&&!DRAG.dragging) startDrag(); },200);
+  document.addEventListener("pointermove",dragMove);
+  document.addEventListener("pointerup",dragUp);
+  document.addEventListener("pointercancel",dragCancel);
+}
+function startDrag(){
+  clearTimeout(DRAG.timer); DRAG.dragging=true;
+  try{document.body.setPointerCapture(DRAG.ptr)}catch(e){} // implicitní touch capture by zmizel s re-renderem zdroje
+  const c=card(DRAG.id);
+  S.selected=DRAG.id; S.view="class"; S.active=c.class;
+  if(DRAG.from){ S.pickedFrom=DRAG.from; delete S.placements[DRAG.id]; }
+  const src=DRAG.el, r=src.getBoundingClientRect(), g=src.cloneNode(true);
+  const x=g.querySelector(".x"); if(x) x.remove();
+  g.className+=" drag-ghost";
+  g.style.gridArea="auto"; g.style.width=r.width+"px"; g.style.height=r.height+"px";
+  document.body.append(g); DRAG.ghost=g;
+  document.documentElement.classList.add("dragging");
+  document.addEventListener("touchmove",blockTouchScroll,{passive:false}); // jediný spolehlivý zákaz scrollu od teď
+  document.addEventListener("contextmenu",blockEvt);
+  document.addEventListener("click",blockGhostClick,true);
+  if(navigator.vibrate) navigator.vibrate(10);
+  render();
+  positionGhost(); hitTest(DRAG.lx,DRAG.ly);
+  requestAnimationFrame(autoScrollLoop);
+  setStatus("Táhni kartičku na místo v rozvrhu a pusť.");
+}
+function positionGhost(){ if(DRAG.ghost) DRAG.ghost.style.transform="translate("+(DRAG.lx-DRAG.ox)+"px,"+(DRAG.ly-DRAG.oy)+"px)"; }
+function hitTest(x,y){
+  // elementsFromPoint (celý stack): buňka může být zakrytá už položenou kartičkou
+  // a drop na ni má vytvořit překryv (konflikt se zvýrazní, nezakazuje se)
+  let cell=null;
+  for(const t of document.elementsFromPoint(x,y)){
+    const c=t.closest?t.closest(".cell.drop"):null;
+    if(c){ cell=c; break; }
+    if(t===document.body) break;
+  }
+  if(DRAG.overCell&&DRAG.overCell!==cell) DRAG.overCell.classList.remove("over");
+  if(cell) cell.classList.add("over");
+  DRAG.overCell=cell;
+}
+function autoScrollLoop(){ // tažení k okraji viewportu / boxu rozvrhu posouvá obsah
+  if(!DRAG.dragging) return;
+  const M=48,x=DRAG.lx,y=DRAG.ly; let moved=false;
+  if(y<M){ window.scrollBy(0,-Math.ceil((M-y)/6)); moved=true; }
+  else if(y>innerHeight-M){ window.scrollBy(0,Math.ceil((y-innerHeight+M)/6)); moved=true; }
+  const sc=document.getElementById("schedule"), r=sc.getBoundingClientRect();
+  if(x>r.left&&x<r.left+M){ sc.scrollLeft-=Math.ceil((r.left+M-x)/6); moved=true; }
+  else if(x<r.right&&x>r.right-M){ sc.scrollLeft+=Math.ceil((x-r.right+M)/6); moved=true; }
+  if(moved) hitTest(x,y); // obsah pod nehybným prstem se posunul
+  requestAnimationFrame(autoScrollLoop);
+}
+function dragMove(ev){
+  if(ev.pointerId!==DRAG.ptr) return;
+  DRAG.lx=ev.clientX; DRAG.ly=ev.clientY;
+  if(DRAG.dragging){ positionGhost(); hitTest(DRAG.lx,DRAG.ly); return; }
+  const dist=Math.hypot(DRAG.lx-DRAG.sx,DRAG.ly-DRAG.sy);
+  if(!DRAG.touch){ if(dist>5) startDrag(); }
+  else if(dist>10) disarmDrag(); // pohyb před vypršením holdu = uživatel scrolluje
+}
+function dragUp(ev){
+  if(ev.pointerId!==DRAG.ptr) return;
+  if(!DRAG.dragging){ disarmDrag(); return; } // krátký klik/tap — nech proběhnout click
+  hitTest(ev.clientX,ev.clientY);
+  const id=DRAG.id, cell=DRAG.overCell;
+  dragCleanup();
+  if(cell) tryPlace(id,+cell.dataset.w,+cell.dataset.d,+cell.dataset.p);
+  else dropNowhere();
+}
+function dragCancel(ev){ if(ev.pointerId!==DRAG.ptr) return; cancelDrag(); }
+function cancelDrag(){ // pointercancel, Esc, blur okna
+  if(!DRAG.dragging){ disarmDrag(); return; }
+  dragCleanup(); dropNowhere();
+}
+function dropNowhere(){
+  const back=!!S.pickedFrom;
+  restoreLifted(); S.selected=null; render();
+  setStatus(back?"Přesun zrušen — kartička je zpět na svém místě.":"Tažení zrušeno.");
+}
+function dragCleanup(){
+  DRAG.dragging=false;
+  try{document.body.releasePointerCapture(DRAG.ptr)}catch(e){}
+  if(DRAG.ghost){ DRAG.ghost.remove(); DRAG.ghost=null; }
+  if(DRAG.overCell){ DRAG.overCell.classList.remove("over"); DRAG.overCell=null; }
+  document.documentElement.classList.remove("dragging");
+  document.removeEventListener("touchmove",blockTouchScroll);
+  document.removeEventListener("contextmenu",blockEvt);
+  DRAG.justDropped=true; // potlač „duchový“ click hned po dropu
+  setTimeout(()=>{ DRAG.justDropped=false; document.removeEventListener("click",blockGhostClick,true); },0);
+  disarmDrag();
+}
+function disarmDrag(){
+  clearTimeout(DRAG.timer);
+  document.removeEventListener("pointermove",dragMove);
+  document.removeEventListener("pointerup",dragUp);
+  document.removeEventListener("pointercancel",dragCancel);
+  DRAG.armed=false; DRAG.ptr=null; DRAG.id=null; DRAG.from=null; DRAG.el=null;
+}
+function blockTouchScroll(e){ e.preventDefault(); }
+function blockEvt(e){ e.preventDefault(); }
+function blockGhostClick(e){ if(DRAG.justDropped){ e.stopPropagation(); e.preventDefault(); } }
 
 /* =====================================================================
    RENDER
@@ -528,7 +739,9 @@ function el(tag,props,...kids){
 function render(){
   const ents=entitiesOf(S.view);
   if(!ents.includes(S.active)) S.active=ents[0];
-  renderPalette(); renderTabs(); renderSchedule(); renderGoals();
+  const conflicts=computeConflicts(); // jednou pro rozvrh i panel požadavků
+  renderPalette(); renderTabs(); renderSchedule(conflicts); renderGoals(conflicts);
+  updateUndoBtns();
 }
 
 function renderPalette(){
@@ -537,11 +750,12 @@ function renderPalette(){
   if(!unplaced.length){ box.append(el("div",{class:"palette-empty"},"Všechny kartičky jsou v rozvrhu.")); return; }
   unplaced.forEach(c=>{
     const d=el("div",{
-      class:"card dur"+c.duration+(S.selected===c.id?" sel":""),
-      "data-dur":c.duration+"h", draggable:"true",
+      class:"card dur"+c.duration+(S.selected===c.id?" sel":"")
+        +(DRAG.dragging&&S.selected===c.id?" drag-src":""),
+      "data-dur":c.duration+"h",
       style:{"--f":fieldVar(c.field)},
       onclick:()=>pickUp(c.id),
-      ondragstart:ev=>{ev.dataTransfer.setData("text/plain",c.id);S.selected=c.id;S.view="class";S.active=c.class;}
+      onpointerdown:ev=>armDrag(ev,c.id,null)
     },
       el("div",{class:"subj"},c.subject),
       el("div",{class:"meta"},
@@ -575,9 +789,8 @@ function renderTabs(){
 // Úzký displej: transponováno (hodiny v řádcích, dolů). Při změně se překresluje.
 function isHorizontal(){ return window.matchMedia("(min-width:820px)").matches; }
 
-function renderSchedule(){
+function renderSchedule(reasons){
   const box=document.getElementById("schedule"); box.textContent="";
-  const reasons=computeConflicts();
   const horiz=isHorizontal();
   const playing=S.view==="class"; // jen v pohledu po třídách se umisťuje
   LVL.weeks.forEach((wname,w)=>{
@@ -612,7 +825,7 @@ function renderSchedule(){
       DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:d+2}},dn)));
     }else{ // dny = sloupce, hodiny = řádky (transponováno pro úzký displej)
       grid=el("div",{class:"grid",style:{
-        gridTemplateColumns:"38px repeat(5,1fr)",
+        gridTemplateColumns:"38px repeat("+DAYS.length+",1fr)",
         gridTemplateRows:"24px repeat("+LVL.periods+",minmax(46px,auto))"
       }});
       grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
@@ -623,14 +836,9 @@ function renderSchedule(){
     // POZADÍ: všechny buňky. V herním pohledu jsou to drop zóny.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
       const droppable=playing && S.selected && fits(card(S.selected),p);
-      const props={ class:"cell"+(droppable?" drop":""),
+      const props={ class:"cell"+(droppable?" drop":""), "data-w":w,"data-d":d,"data-p":p,
         style:{gridColumn:horiz?p+1:d+2, gridRow:horiz?d+2:p+1} };
-      if(playing){
-        props.onclick=()=>{ if(S.selected) tryPlace(S.selected,w,d,p); };
-        props.ondragover=ev=>{ev.preventDefault();ev.currentTarget.classList.add("over");};
-        props.ondragleave=ev=>ev.currentTarget.classList.remove("over");
-        props.ondrop=ev=>{ev.preventDefault();ev.currentTarget.classList.remove("over");const id=ev.dataTransfer.getData("text/plain");if(id)tryPlace(id,w,d,p);};
-      }
+      if(playing) props.onclick=()=>{ if(S.selected) tryPlace(S.selected,w,d,p); };
       grid.append(el("div",props));
     }
 
@@ -656,9 +864,8 @@ function renderSchedule(){
         title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
       };
       if(playing){
-        props.draggable="true";
         props.onclick=ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); };
-        props.ondragstart=ev=>{ev.dataTransfer.setData("text/plain",x.id);S.selected=x.id;};
+        props.onpointerdown=ev=>armDrag(ev,x.id,x.pl);
       }else{
         props.title+=" — klikni pro přechod do pohledu třídy "+c.class;
         props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
@@ -674,12 +881,12 @@ function renderSchedule(){
   });
 }
 
-function renderGoals(){
+function renderGoals(reasons){
   const box=document.getElementById("goals"); box.textContent="";
   const results=LVL.goals.map(g=>({g,met:evalGoal(g)}));
   const done=results.filter(r=>r.met).length, tot=results.length;
   const pct=tot?Math.round(done/tot*100):0;
-  const reasons=computeConflicts(); const confCount=Object.keys(reasons).length;
+  const confCount=Object.keys(reasons).length;
 
   box.append(el("div",{class:"score"},el("b",{},pct+" %"),el("span",{class:"muted"},"splněno "+done+"/"+tot)));
   box.append(el("div",{class:"bar"},el("div",{style:{width:pct+"%"}})));
@@ -694,8 +901,10 @@ function renderGoals(){
     ));
   });
 
-  if(done===tot && confCount===0)
+  if(done===tot && confCount===0){
     box.append(el("div",{class:"win"},"Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉"));
+    markDone(LVL.id);
+  }
 
   box.append(el("div",{class:"legend"},
     el("span",{},el("span",{class:"sw",style:{background:"var(--it)"}}),"IT"),
@@ -710,13 +919,25 @@ function renderGoals(){
 function b64e(s){ return btoa(unescape(encodeURIComponent(s))); }
 function b64d(s){ return decodeURIComponent(escape(atob(s))); }
 function exportStr(){ return b64e(JSON.stringify({v:1,level:LVL.id,pl:S.placements})); }
-function importStr(str){
+function validPlacement(id,pl){ // karta existuje a w/d/p jsou v mezích aktuálního levelu
+  const c=card(id);
+  return !!c && !!pl
+    && Number.isInteger(pl.w) && pl.w>=0 && pl.w<LVL.weeks.length
+    && Number.isInteger(pl.d) && pl.d>=0 && pl.d<DAYS.length
+    && Number.isInteger(pl.p) && fits(c,pl.p);
+}
+function readPlacements(o){ // z cizích dat převezmi jen platné placementy a jen w/d/p
+  const valid={};
+  for(const id in (o.pl||{})){ const pl=o.pl[id]; if(validPlacement(id,pl)) valid[id]={w:pl.w,d:pl.d,p:pl.p}; }
+  return valid;
+}
+function importStr(str,opts){
   try{
     const o=JSON.parse(b64d(str.trim()));
     const lv=LEVELS.find(l=>l.id===o.level); if(!lv) throw 0;
     loadLevel(lv.id,false);
-    const valid={}; for(const id in o.pl){ if(card(id)) valid[id]=o.pl[id]; }
-    S.placements=valid; render(); autosave();
+    S.placements=readPlacements(o); render();
+    if(!opts||opts.autosave!==false) autosave();
     setStatus("Pozice načtena.");
     return true;
   }catch(e){ setStatus("Řetězec se nepodařilo načíst."); return false; }
@@ -725,7 +946,12 @@ function autosave(){ if(Store) Store.set("auto:"+LVL.id, exportStr()); }
 async function loadAutosave(){
   if(!Store) return;
   const s=await Store.get("auto:"+LVL.id);
-  if(s){ try{ const o=JSON.parse(b64d(s)); const valid={}; for(const id in o.pl) if(card(id)) valid[id]=o.pl[id]; S.placements=valid; render(); }catch(e){} }
+  if(s){ try{ S.placements=readPlacements(JSON.parse(b64d(s))); render(); }catch(e){} }
+}
+function copyText(t){ // clipboard API s fallbackem (file:// a starší prohlížeče)
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject())
+    .catch(()=>{ const ta=el("textarea",{style:{position:"fixed",opacity:0}},t);
+      document.body.append(ta); ta.select(); try{document.execCommand("copy")}catch(e){} ta.remove(); });
 }
 
 /* ---------- MODÁLY ---------- */
@@ -745,14 +971,25 @@ function confirmModal(title,text,onYes,yesLabel){
 async function saveModal(){
   const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
   const ta=el("textarea",{readonly:"readonly"},exportStr());
+  const impIn=el("input",{type:"text",placeholder:"Sem vlož řetězec pozice…",style:{flex:"1",minWidth:"0"}});
+  const doImport=()=>{ if(impIn.value.trim() && importStr(impIn.value)) ov.remove(); };
+  impIn.addEventListener("keydown",e=>{ if(e.key==="Enter") doImport(); });
   const slotsBox=el("div",{});
+  const shareRow=el("div",{class:"row",style:{justifyContent:"flex-start",marginTop:"8px"}},
+    el("button",{onclick:()=>{copyText(ta.value);setStatus("Řetězec zkopírován.");}},"Kopírovat"));
+  if(location.protocol.indexOf("http")===0) // v artefakt sandboxu není URL k ničemu
+    shareRow.append(el("button",{onclick:()=>{
+      copyText(location.origin+location.pathname+location.search+"#p="+encodeURIComponent(exportStr()));
+      setStatus("Odkaz na pozici zkopírován.");
+    }},"Zkopírovat odkaz"));
   const m=el("div",{class:"modal"},
     el("h3",{},"Uložit / Načíst pozici"),
     el("p",{},"Řetězec níž je kompletní pozice — zkopíruj si ho kamkoli a kdykoli vlož zpět. Funguje všude, i bez účtu."),
     ta,
+    shareRow,
     el("div",{class:"row",style:{justifyContent:"flex-start",marginTop:"8px"}},
-      el("button",{onclick:()=>{ta.select();try{document.execCommand("copy");}catch(e){} setStatus("Řetězec zkopírován.");}},"Kopírovat"),
-      el("button",{onclick:()=>{ const v=prompt("Vlož řetězec pozice:"); if(v){ if(importStr(v)) ov.remove(); } }},"Načíst z řetězce")
+      impIn,
+      el("button",{onclick:doImport},"Načíst")
     ),
     el("h3",{style:{marginTop:"16px",fontSize:"14px"}},"Uložené pozice"),
     slotsBox
@@ -762,11 +999,15 @@ async function saveModal(){
   async function refresh(){
     slotsBox.textContent="";
     if(!Store){ slotsBox.append(el("p",{},"Pojmenované sloty tu nejsou dostupné — použij řetězec výš.")); return; }
+    const nameIn=el("input",{type:"text",placeholder:"Název pozice",style:{flex:"1",minWidth:"0"}});
+    const saveSlot=async()=>{
+      const name=nameIn.value.trim(); if(!name){ setStatus("Zadej název pozice."); return; }
+      await Store.set("slot:"+LVL.id+":"+name, exportStr()); refresh(); setStatus("Uloženo jako „"+name+"“.");
+    };
+    nameIn.addEventListener("keydown",e=>{ if(e.key==="Enter") saveSlot(); });
     slotsBox.append(el("div",{class:"row",style:{justifyContent:"flex-start"}},
-      el("button",{class:"primary",onclick:async()=>{
-        const name=prompt("Název pozice:"); if(!name)return;
-        await Store.set("slot:"+LVL.id+":"+name, exportStr()); refresh(); setStatus("Uloženo jako „"+name+"“.");
-      }},"Uložit aktuální pozici")
+      nameIn,
+      el("button",{class:"primary",onclick:saveSlot},"Uložit")
     ));
     const keys=await Store.list("slot:"+LVL.id+":");
     if(!keys.length){ slotsBox.append(el("p",{style:{marginTop:"8px"}},"Zatím nic uloženého.")); return; }
@@ -782,12 +1023,49 @@ async function saveModal(){
   refresh();
 }
 
+/* Modál „Řešitelnost?“ — průběh chunkovaného samplování + tabulka per-cíl. */
+function solvableModal(){
+  const lvl=LVL, M=300; // level zafixovat — hráč ho může během běhu přepnout
+  const prog=el("div",{class:"muted",style:{fontSize:"13px",margin:"2px 0 6px"}},"Počítám…");
+  const barIn=el("div",{style:{width:"0%"}});
+  const resBox=el("div",{});
+  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)close();}});
+  const closeBtn=el("button",{onclick:()=>close()},"Zrušit");
+  const run=checkSolvableAsync(lvl.id,M,st=>{
+    prog.textContent="Vzorek "+st.i+"/"+M+" · kompletních rozvrhů "+st.complete+" · výher "+st.wins;
+    barIn.style.width=(st.i/M*100)+"%";
+  });
+  function close(){ run.cancel(); ov.remove(); }
+  ov.append(el("div",{class:"modal"},
+    el("h3",{},"Řešitelnost — "+lvl.name),
+    el("p",{},"Vzorkují se náhodné kompletní rozvrhy bez tvrdých konfliktů a měří se, jak často splní všechny cíle."),
+    prog, el("div",{class:"bar"},barIn), resBox,
+    el("div",{class:"row"},closeBtn)
+  ));
+  document.body.append(ov);
+  run.promise.then(r=>{
+    if(!ov.isConnected) return; // modál mezitím zavřený (zrušeno)
+    closeBtn.textContent="Zavřít";
+    barIn.style.width="100%";
+    prog.textContent="Vzorků "+r.samples+" · kompletních rozvrhů "+r.completeFound+" · výher "+r.wins;
+    resBox.append(el("div",{class:"conf-line "+(r.solvable?"ok":"bad")},
+      r.solvable ? "Level je řešitelný — výhru má ≈"+r.winRatePct+" % náhodných rozvrhů."
+                 : "Nenašla se ani jedna výhra — level je hodně těžký nebo neřešitelný."));
+    r.perGoal.forEach(g=>resBox.append(el("div",{class:"goal"},
+      el("div",{class:"txt",style:{flex:"1"}},g.label),
+      el("b",{style:{fontSize:"13px",whiteSpace:"nowrap"}},g.metPct+" %")
+    )));
+    console.log("Řešitelnost levelu "+r.level+":",r);
+  });
+}
+
 /* =====================================================================
    LEVELY / TÉMA / INIT
    ===================================================================== */
 function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
-  S.placements={}; S.selected=null; S.view="class"; S.active=classesOf()[0];
+  S.placements={}; S.selected=null; S.pickedFrom=null; S.view="class"; S.active=classesOf()[0];
+  HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
   render();
@@ -800,39 +1078,64 @@ function setTheme(t){
   if(Store) Store.set("theme",t);
 }
 
-window.addEventListener("DOMContentLoaded",async()=>{
+const DONE=new Set(); // id dokončených levelů (✓ v selectu)
+function refreshLevelSel(){
+  const sel=document.getElementById("levelSel");
+  [...sel.options].forEach(o=>{ const l=LEVELS.find(x=>x.id===o.value); if(l) o.textContent=l.name+(DONE.has(l.id)?" ✓":""); });
+}
+function markDone(id){
+  if(DONE.has(id)) return;
+  DONE.add(id);
+  if(Store) Store.set("done", JSON.stringify([...DONE]));
+  refreshLevelSel();
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
   statusEl=document.getElementById("status");
   const sel=document.getElementById("levelSel");
   LEVELS.forEach(l=>sel.append(el("option",{value:l.id},l.name)));
   sel.addEventListener("change",()=>loadLevel(sel.value));
 
   document.getElementById("clearBtn").onclick=()=>confirmModal(
-    "Smazat rozvrh?","Všechny kartičky se vrátí do seznamu. Tahle akce nejde vrátit.",clearAll,"Smazat");
+    "Smazat rozvrh?","Všechny kartičky se vrátí do seznamu. Vrátit to jde tlačítkem ↶ Zpět.",clearAll,"Smazat");
   document.getElementById("randomBtn").onclick=()=>confirmModal(
     "Náhodně rozmístit?","Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné zůstanou.",randomFill,"Rozmístit");
   document.getElementById("saveBtn").onclick=saveModal;
-  document.getElementById("checkBtn").onclick=()=>{
-    const r=checkSolvable(LVL.id);
-    if(!r){ setStatus("Level nenalezen."); return; }
-    console.log("Řešitelnost levelu "+r.level+":",r);
-    setStatus(r.solvable
-      ? "Level je řešitelný — výhru má ≈"+r.winRatePct+" % náhodných rozvrhů. Detaily v konzoli."
-      : "Sampling ("+r.samples+") nenašel výhru — level je hodně těžký nebo neřešitelný. Detaily v konzoli.");
-  };
+  document.getElementById("checkBtn").onclick=solvableModal;
+  document.getElementById("undoBtn").onclick=undo;
+  document.getElementById("redoBtn").onclick=redo;
 
-  let theme="light"; if(Store){ const t=await Store.get("theme"); if(t)theme=t; }
-  setTheme(theme);
+  // motiv nastavil synchronní skript v <head>; async úložiště (artefakt) ho jen doladí
+  if(Store) Store.get("theme").then(t=>{ if(t && t!==document.documentElement.getAttribute("data-theme")) setTheme(t); });
   document.getElementById("themeBtn").onclick=()=>
     setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
 
-  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&S.selected){S.selected=null;render();setStatus("Výběr zrušen.");}});
+  if(Store) Store.get("done").then(s=>{ try{ JSON.parse(s||"[]").forEach(id=>DONE.add(id)); }catch(e){} refreshLevelSel(); });
+
+  document.addEventListener("keydown",e=>{
+    if(e.target && (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
+    if(e.key==="Escape"){
+      if(DRAG.dragging){ cancelDrag(); return; }
+      if(S.selected){ const back=!!S.pickedFrom; restoreLifted(); S.selected=null; render();
+        setStatus(back?"Výběr zrušen — kartička je zpět na svém místě.":"Výběr zrušen."); }
+    }
+    else if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); }
+    else if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==="y" || (e.shiftKey&&e.key.toLowerCase()==="z"))){ e.preventDefault(); redo(); }
+  });
+  window.addEventListener("blur",()=>{ if(DRAG.dragging) cancelDrag(); });
 
   // překresli rozvrh při změně orientace (desktop na šířku ↔ úzký displej dolů).
   // Hlídá se přes resize (spolehlivější než matchMedia), překreslí jen při PŘEKLOPENÍ.
   let lastHoriz=isHorizontal();
   window.addEventListener("resize",()=>{ const h=isHorizontal(); if(h!==lastHoriz){ lastHoriz=h; render(); } });
 
-  loadLevel(LEVELS[0].id);
+  // sdílená pozice v URL (#p=<řetězec>) má přednost před výchozím levelem
+  const h=location.hash.match(/^#p=(.+)/); let fromHash=false;
+  if(h){ try{ fromHash=importStr(decodeURIComponent(h[1]),{autosave:false}); }catch(e){} }
+  if(fromHash){
+    try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} // reload už nepřepíše rozehranou pozici
+    setStatus("Načtena sdílená pozice.");
+  }else loadLevel(LEVELS[0].id);
 });
 </script>
 </body>
