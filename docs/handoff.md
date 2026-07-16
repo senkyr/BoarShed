@@ -224,8 +224,19 @@ Od zadavatele:
    rozlišit tvrdé vs. herní.
 3. **Režim:** kola vs. iron man (nebo oba); zda chtít i pohled za učitele/učebnu.
 
+**Obsah (07/2026):** kampaň 6 levelů postavená „naslepo" — svět inspirovaný skutečností
+(4 obory: informatika s mng. `IT`, elektronické počítače `EP`, slaboproud `ELE`,
+strojírenství `STR`; ročníky 1–4; budovy Š101/H59/H618; ~12 učitelů s křestními jmény;
+zástupné předměty). Obtížnost balancovaná simulacemi (podíl výher mezi náhodnými
+platnými rozvrhy): l1 9,6 % → l2 3,6 % → l3 2,6 % → l4 1,1 % → l5 iron-man 2,7 %
+(záměrný oddech před finále) → l6 „Prase" 0,4 %. Vzorové řešení l4 (given pro l5) bylo
+nalezeno a ověřeno enginem; řešitelnost všech levelů potvrzena vzorkováním (l6 na
+20 000 vzorcích). Není to simulace reality — jména a předměty jde později 1:1 vyměnit
+za podvýběr skutečných (pak přeměřit řešitelnost).
+
 Technické TODO / nápady:
-- Případné další typy cílů podle reálných levelů. Pozn.: „vázanost předmětu na budovu"
+- Výměna zástupných předmětů/jmen za podvýběr skutečných (jen přejmenování v datech).
+- Případné další typy cílů podle potřeb. Pozn.: „vázanost předmětu na budovu"
   není herní cíl — budova je pevná vlastnost kartičky, řeší se návrhem dat levelu.
 - Editor levelů: případně formulářová nadstavba nad JSON (teď se edituje JSON přímo).
 - Iron-man: `carryFrom` přenáší autosave zdrojového levelu (nemusí to být výherní pozice);

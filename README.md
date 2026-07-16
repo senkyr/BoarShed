@@ -44,8 +44,12 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
   i bez účtu a po nasazení. **Sdílení pozice odkazem** (`#p=…`). Dokončené levely
   mají ✓ v přepínači.
 - Světlý/tmavý motiv (CSS proměnné), respektuje systémovou preferenci, volba se pamatuje.
-- Tři demo úrovně (L1 rozjezd, L2 dva týdny / dvě budovy s přechody, L3 iron-man
-  nadstavba nad L2).
+- **Kampaň 6 levelů** s měřenou rostoucí obtížností (výhra v ~10 % → ~0,4 % náhodných
+  platných rozvrhů): rozjezd → dvě třídy → dva týdny a dvě budovy → tři budovy →
+  iron-man dostavba → finále **„Prase"**. Svět je „naslepo" inspirovaný skutečností:
+  4 obory (informatika s managementem, elektronické počítače, slaboproudá
+  elektrotechnika, strojírenství), ročníky 1–4, tři budovy (Š101, H59, H618),
+  zástupné předměty a křestní jména — později lze 1:1 vyměnit za podvýběr skutečných.
 
 ## Spuštění
 

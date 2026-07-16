@@ -27,9 +27,21 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **DATA — LEVELY**: pole `LEVELS`. Level = `{id, name, desc, weeks, periods, cards[], goals[]}`
   + volitelně `given` (zamčené výchozí pozice `{cardId:{w,d,p}}`), `carryFrom` (iron-man:
   id levelu, jehož autosave nahradí `given` jako zamčený základ) a `custom` (level z editoru).
-  - karta: `{id, class, subject, field(IT|ELE|STR), teacher, room, building, duration}`
+  - karta: `{id, class, subject, field(IT|EP|ELE|STR), teacher, room, building, duration}`
   - placement: `{w: weekIndex, d: dayIndex 0–4, p: startPeriod 1-based}`
-  - `field` řídí barvu kartičky; `duration` = výška bloku (počet hodin).
+  - `field` řídí barvu kartičky (`FIELD_NAMES`, legenda se staví z oborů v levelu);
+    `duration` = výška bloku (počet hodin).
+- **SVĚT KAMPANĚ** („naslepo" dle SPŠ, zástupné předměty/jména — lze 1:1 přejmenovat):
+  - obory: `IT` informatika s mng., `EP` elektronické počítače, `ELE` slaboproud,
+    `STR` strojírenství; třídy `<ročník>.<IT|EP|EL|ST>` (field dle oboru třídy).
+  - budovy/učebny (učebna má VŽDY jednu budovu — hlídá `validateLevel`):
+    Š101: U1–U3, L1–L2 (poč. laby), T1 (tělocvična); H59: D1–D2, M1; H618: S1–S2, C1 (CNC).
+  - učitelé: Petr+Eva (IT), Karel+Ondřej (EP), Jan (EP/EL, přebíhá budovy),
+    Alena (EL, zkrácený úvazek), Lucie+Martin (ST), Hana (mat), Jitka (jazyky),
+    Tomáš (tělocvik), Marie (ekonomika).
+  - kampaň l1–l6, měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, simulace):
+    l1 ≈ 9,6 % · l2 ≈ 3,6 % · l3 ≈ 2,6 % · l4 ≈ 1,1 % · l5 (iron-man, záměrný oddech)
+    ≈ 2,7 % · l6 „Prase" ≈ 0,4 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
 - **ÚLOŽIŠTĚ**: adaptér `Store` s feature-detekcí `window.storage` → `localStorage` → null.
   Páteř ukládání je serializační řetězec Base64(JSON), funguje vždy. Import (modál,
   autosave i URL hash `#p=<řetězec>`) validuje placementy přes `validPlacement()`
@@ -126,7 +138,7 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   „Náhodně" (i s checkboxem měkkých cílů) a „Řešitelnost?" (modál s průběhem, jde
   zrušit), vyzkoušej ↶ Zpět / ↷ Znovu (i Ctrl+Z/Y), ulož/načti řetězec i pojmenovaný
   slot, zkopíruj odkaz a otevři ho (načte pozici, hash zmizí z URL), přepni motiv
-  (tmavý nesmí při načtení bliknout světlým). V L3 ověř zamčené kartičky (🔒 — nejde
+  (tmavý nesmí při načtení bliknout světlým). V l5 ověř zamčené kartičky (🔒 — nejde
   zvednout, přežijí Smazat) a v Editoru ulož/smaž zkušební level (objeví se s `*`
   v přepínači). Žádné chyby v konzoli. Dotyk otestuj i na reálném zařízení, ne jen
   v emulaci.
@@ -153,8 +165,9 @@ dokončených levelů (✓), sdílení pozice přes URL hash, motiv bez flashe, 
 vlastní levely ve Store) a **chytřejší řešič** (heuristika delších bloků, volitelné
 plnění měkkých cílů, hlášení co zablokovalo doplnění).
 
-Zbývá (viz [docs/handoff.md → sekce 5](docs/handoff.md)): **reálná data** (seznamy
-tříd/učeben+budov/učitelů/předmětů) a návrh dalších levelů — blokované na vstupech
-od Jakuba. Pozn.: „vázanost předmětu na budovu“ z původního zadání není herní cíl —
-budova je pevná vlastnost kartičky, řeší se návrhem dat levelu.
-Než začneš na obsahu, ujasni si s Jakubem priority a chybějící vstupy.
+Obsah je hotový „naslepo": kampaň 6 levelů (l1–l6, viz SVĚT KAMPANĚ výš) s obtížností
+vybalancovanou simulacemi. Zbývá případně: **výměna zástupných předmětů/jmen za
+podvýběr skutečných** (1:1 přejmenování v datech — po výměně přeměř řešitelnost)
+a ruční otestování dotyku na reálném zařízení. Pozn.: „vázanost předmětu na budovu"
+z původního zadání není herní cíl — budova je pevná vlastnost kartičky, řeší se
+návrhem dat levelu.
