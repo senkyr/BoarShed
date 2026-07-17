@@ -138,7 +138,7 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
 ## Spuštění a ověření
 
 - **Lokálně:** otevři `index.html` v prohlížeči (žádný server není potřeba).
-- **Smoke test po zásahu:** projdi obě demo úrovně — umísti kartu klikem i tahem
+- **Smoke test po zásahu:** projdi kampaň (minimálně l1, l2 a l5) — umísti kartu klikem i tahem
   (myší; na dotyku podržet ~200 ms, švih přes kartu musí scrollovat), zruš tažení
   puštěním mimo rozvrh a Escapem (karta se vrátí na původní místo), vyvolej konflikt
   (musí zčervenat + tooltip), překryj dvě karty stejné třídy (musí být vidět vedle
@@ -149,10 +149,12 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   slot, zkopíruj odkaz a otevři ho (načte pozici, hash zmizí z URL), přepni motiv
   (tmavý nesmí při načtení bliknout světlým). V l5 ověř zamčené kartičky (🔒 — nejde
   zvednout, přežijí Smazat) a v Editoru ulož/smaž zkušební level (objeví se s `*`
-  v přepínači). Projdi světlý i tmavý motiv a úzké okno (<600 px): fixní lišta nesmí
-  zakrývat spodek obsahu (padding-bottom media queries) a umístěné kartičky skrývají
-  řádek budovy. Žádné chyby v konzoli. Dotyk otestuj i na reálném zařízení, ne jen
-  v emulaci.
+  v přepínači) a pošli level odkazem („Odkaz na level" → otevřít v novém tabu).
+  Ověř fér ✓ (výhra přes „Náhodně + zkusit cíle" ukáže banner „poskládal řešič" bez ✓;
+  ruční tah pak povýší na pravou výhru) a otevři ⓘ O hře. Projdi světlý i tmavý motiv
+  a úzké okno (<600 px): fixní lišta nesmí zakrývat spodek obsahu (padding-bottom
+  media queries) a umístěné kartičky skrývají řádek budovy. Žádné chyby v konzoli.
+  Dotyk otestuj i na reálném zařízení, ne jen v emulaci.
 - **Po úpravě dat/cílů levelu** spusť „Řešitelnost?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.
 
@@ -172,13 +174,37 @@ Hotovo nad rámec původního MVP: pohledy za učitele/učebnu, nové typy cíl�
 + modál s tabulkou per-cíl), oprava překrývajících se kartiček (lanes), jednotný
 pointer-drag (myš i dotyk), undo/redo, validace importovaných pozic, evidence
 dokončených levelů (✓), sdílení pozice přes URL hash, motiv bez flashe, **iron-man**
-(zamčené kartičky `given`/`carryFrom` + demo level L3), **editor levelů** (JSON,
-vlastní levely ve Store) a **chytřejší řešič** (heuristika delších bloků, volitelné
-plnění měkkých cílů, hlášení co zablokovalo doplnění).
+(zamčené kartičky `given`/`carryFrom`, v kampani level l5), **editor levelů** (JSON,
+vlastní levely ve Store, sdílení levelů odkazem `#l=`), **chytřejší řešič**
+(heuristika delších bloků, volitelné plnění měkkých cílů, hlášení co zablokovalo
+doplnění), **fér ✓** (výhra řešičem/importem nedává odznak) a **modál ⓘ O hře**.
 
-Obsah je hotový „naslepo": kampaň 6 levelů (l1–l6, viz SVĚT KAMPANĚ výš) s obtížností
-vybalancovanou simulacemi. Zbývá případně: **výměna zástupných předmětů/jmen za
-podvýběr skutečných** (1:1 přejmenování v datech — po výměně přeměř řešitelnost)
-a ruční otestování dotyku na reálném zařízení. Pozn.: „vázanost předmětu na budovu"
-z původního zadání není herní cíl — budova je pevná vlastnost kartičky, řeší se
-návrhem dat levelu.
+Obsah je hotový „naslepo": kampaň 6 levelů (l1–l6, viz SVĚT KAMPANĚ výš), obtížnost
+vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6
+vyhrány, 07/2026).
+
+Zbývá:
+
+1. **Nasazení na Render** (postup v README) a poté doplnit `REPO_URL` v `aboutModal`
+   (repo veřejné — je součást role AI demonstrátoru).
+2. **Výměna zástupných jmen za podvýběr skutečných** — čistě 1:1 přejmenování v datech
+   (pole `LEVELS`), struktura ani cíle se nemění; po výměně přeměřit řešitelnost.
+   Rozsah, který je potřeba dodat (aktuální zástupné hodnoty a jejich role):
+   - **12 křestních jmen učitelů**: Petr + Eva (IT), Karel + Ondřej (EP), Jan (EP/EL,
+     přebíhá budovy), Alena (EL, zkrácený úvazek — jen sudý týden), Lucie + Martin (ST),
+     Hana (matematika, učí „všude"), Jitka (jazyky), Tomáš (tělocvik, jediná
+     tělocvična), Marie (management/ekonomika).
+   - **19 názvů předmětů**: všeobecné — Matematika, Angličtina, Tělocvik, Fyzika;
+     IT — Programování, Databáze, Web, Management, Ekonomika; EP — Číslicová technika,
+     Mikroprocesory, Hardware; EL — Elektronika, Měření; ST — CAD, CNC, Praxe,
+     Stavba strojů, Technologie.
+   - **12 kódů učeben**: Š101 — U1, U2, U3 (kmenové), L1, L2 (počítačové),
+     T1 (tělocvična); H59 — D1, D2 (dílny), M1 (měřicí lab); H618 — S1, S2 (strojní
+     dílny), C1 (CNC). Budova OPMB ze zadání zatím nepoužita (kampani stačí 3 budovy).
+   - volitelně **11 označení tříd** (teď `1.IT`, `1.EP`, `2.EL`, `2.ST`, `3.IT`,
+     `3.EP`, `3.ST`, `4.IT`, `4.EP`, `4.EL`, `4.ST`).
+3. Ruční otestování dotyku na reálném mobilu/tabletu (hold ~200 ms = tažení,
+   švih = scroll).
+
+Pozn.: „vázanost předmětu na budovu" z původního zadání není herní cíl — budova je
+pevná vlastnost kartičky, řeší se návrhem dat levelu.

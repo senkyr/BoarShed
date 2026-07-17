@@ -1,8 +1,9 @@
 # Skládání rozvrhu — předávací dokument
 
 Logická hra pro kolegy, kde se „skládá rozvrh“ (in-joke; teoreticky může být i neřešitelně těžká).
-Stav: **funkční kostra (MVP)** v jediném souboru `rozvrh.html`. Tento dokument shrnuje původní zadání,
-co je hotové a jaká rozhodnutí padla během vývoje — jako podklad pro pokračování v Claude Code.
+Stav: **hotová hra** (kampaň 6 levelů s měřeným balancem, editor, sdílení, studentská edice)
+v jediném souboru `index.html`. Tento dokument shrnuje původní zadání, co je hotové a jaká
+rozhodnutí padla během vývoje — jako podklad pro pokračování v Claude Code.
 
 ---
 
@@ -66,9 +67,9 @@ Hráč přetahuje kartičky do rozvrhu a snaží se splnit současně všechny p
 
 ---
 
-## 2. Co je hotové (stav MVP)
+## 2. Co je hotové
 
-Vše je v jediném souboru `rozvrh.html` — čistý HTML + CSS + vanilla JS, **bez závislostí a bez build
+Vše je v jediném souboru `index.html` — čistý HTML + CSS + vanilla JS, **bez závislostí a bez build
 kroku**. Renderuje se jako artefakt a zároveň je to přímo soubor pro nasazení jako Render **Static Site**.
 
 **Doplněno po MVP (iterace 06–07/2026):** pohledy za učitele/učebnu (jen pro čtení), rozvrh
@@ -81,16 +82,20 @@ k systémové preferenci, **iron-man** (zamčené kartičky `given`/`carryFrom`,
 staví na pozici z L2), **editor levelů** (JSON s validací a testem řešitelnosti, vlastní levely
 se ukládají do úložiště a v přepínači mají `*`) a **chytřejší řešič** (delší bloky dřív,
 volitelný multi-restart na měkké cíle, hlášení kterého tvrdého požadavku se doplnění zaseklo).
+Dále: opravy z adversarial bug huntu (11 nálezů) a race conditions async úložiště, mobilní
+layout (rezerva pod zalomenou lištou, výraznější drop zóny i na slunci, skrytý řádek budovy
+v úzkých buňkách), studentská edice (detail v §5) a **ruční playtest** — l1–l4 + l6 odehrány
+a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 
 **UI a rozvržení**
 - Tři sloupce: Kartičky / Rozvrh / Požadavky. Responsivní — pod 1100 px se skládají pod sebe.
-- Hlavička: výběr levelu, tlačítko Uložit/Načíst, přepínač světlý/tmavý režim.
-- Spodní lišta: Smazat, Náhodně, stavový řádek.
-- Světlý/tmavý motiv přes CSS proměnné, výchozí světlý, volba se ukládá.
+- Hlavička: výběr levelu, Editor, Uložit/Načíst, ⓘ O hře, přepínač světlý/tmavý režim.
+- Spodní lišta: Zpět/Znovu, Smazat, Náhodně, Řešitelnost?, stavový řádek.
+- Světlý/tmavý motiv přes CSS proměnné, výchozí dle systémové preference, volba se ukládá.
 
 **Herní smyčka**
 - Umístění kartičky kliknutím (vyber kartičku → přepne se na záložku její třídy → klikni do buňky)
-  i přes **drag-and-drop** (HTML5).
+  i **tažením** (jednotný pointer-drag, myš i dotyk).
 - Zvednutí už umístěné kartičky kliknutím (přesun), „×“ pro odebrání, Esc ruší výběr.
 - Bloky 1/2/3 h zabírají odpovídající počet řádků; při umístění se hlídá, že se blok vejde do dne.
 - Konflikty se počítají **globálně napříč třídami**, zvýrazní se červeně, důvod je v tooltipu.
@@ -118,9 +123,10 @@ volitelný multi-restart na měkké cíle, hlášení kterého tvrdého požadav
 **Potvrzovací modály** pro Smazat a Náhodně; modál Uložit/Načíst s kopírováním, načtením z řetězce
 a seznamem slotů.
 
-**Demo levely**
-- L1 „Rozjezd“ — jedna třída, jeden týden, jedna budova, jen IT.
-- L2 „Dva týdny, dvě budovy“ — lichý i sudý týden, dvě třídy, dvě budovy, mix oborů, sdílené učebny.
+**Kampaň**
+- 6 levelů `l1`–`l6` (Rozjezd → Dvě třídy → Dva týdny a dvě budovy → Tři budovy →
+  Iron-man dostavba → finále „Prase") ve světě 4 oborů, ročníků 1–4 a 3 budov.
+  Rozsah, zástupná data a naměřený balanc: §5 „Obsah" a CLAUDE.md → „Svět kampaně".
 
 ---
 
@@ -136,32 +142,31 @@ Soubor je rozdělen do logických sekcí (komentáře `=====` v `<script>`):
   cards: [ {id, class, subject, field, teacher, room, building, duration} ],
   goals: [ {id, type, p:{...}, label} ] }
 ```
-- `field` ∈ `IT | ELE | STR` (řídí barvu kartičky).
+- `field` ∈ `IT | EP | ELE | STR` (řídí barvu kartičky; `FIELD_NAMES` + dynamická legenda).
 - `duration` = výška bloku v hodinách.
 - Umístění (placement): `{ w: weekIndex, d: dayIndex(0–4), p: startPeriod(1-based) }`.
 - `DAYS = ["Po","Út","St","Čt","Pá"]`.
+- Level navíc může mít `given` (zamčené výchozí pozice) a `carryFrom` (iron-man).
 
-**Klíčové funkce:**
+**Klíčové funkce** (detailní a aktuální popis architektury drží CLAUDE.md — jediný zdroj pravdy):
 - `cells(id, pl)` — buňky, které kartička zabírá.
 - `computeConflicts()` — vrací `{ cardId: Set<důvod> }`; sdílená buňka + shoda učitel/učebna/třída.
 - `hasHardConflict(id, pl, placements)` — tvrdý konflikt pro řešič.
 - `evalGoal(g)` — vyhodnocení jednoho cíle (switch podle `g.type`).
-- `randomFill()` — řešič (backtracking).
-- `tryPlace / pickUp / unplace / clearAll` — herní akce.
+- `randomFill(smart)` nad `fillOnce()` — řešič; `goalsMetIn` / `blockNote` pro chytrý režim a hlášení.
+- `checkSolvableAsync(...)` — chunkovaná kontrola řešitelnosti (modál + konzole).
+- `tryPlace / pickUp / restoreLifted / unplace / clearAll` — herní akce; `HIST` + `undo/redo`.
+- `applyGiven / loadLevel` — zamčené kartičky (`S.locked`), iron-man přenos.
 - `render / renderPalette / renderTabs / renderSchedule / renderGoals` — celé překreslení (jednoduchost
-  nad výkonem; při ~16 kartičkách v pohodě).
-- `exportStr / importStr / autosave / loadAutosave` + adaptér `Store` — ukládání.
+  nad výkonem; při ~20 kartičkách v pohodě).
+- `exportStr / importStr / handleHash / importLevelStr / autosave / loadAutosave` + adaptér `Store`.
+- `validateLevel / editorModal / loadCustoms` — editor a vlastní levely; `aboutModal` — O hře.
 - `el(tag, props, ...kids)` — mini-helper na tvorbu DOM (bezpečný vůči jménům s diakritikou).
 
-**Typy cílů, které engine umí** (přidání dalšího = jedna `case` v `evalGoal`):
-- `all_placed` — vše umístěno.
-- `subject_time` — `{subject, cls?, maxPeriod?/minPeriod?/exact?}` — denní okno.
-- `subject_day` — `{subject, cls?, day}` — konkrétní den.
-- `teacher_free_day` — `{teacher}` — některý den bez hodin.
-- `teacher_only_week` — `{teacher, week}` — celý úvazek v jednom týdnu.
-- `class_no_gaps` — `{cls}` — třída bez oken.
-- `teacher_transition_gap` — `{teacher}` — přechod mezi budovami vyžaduje volnou hodinu
-  (implementováno, v demu zatím nepoužito).
+**Typy cílů:** 11 typů (`all_placed`, `subject_time/day/week`, `teacher_free_day/only_week/`
+`transition_gap/time`, `class_no_gaps`, `max_per_day`, `lunch_break`) — aktuální tabulku
+parametrů drží CLAUDE.md → „Typy herních cílů". Přidání dalšího = jedna `case` v `evalGoal`
++ povinné parametry do `GOAL_TYPES`.
 
 **Tvrdé požadavky** jsou zapečené v enginu (ne v datech): konflikt učitel/učebna/třída ve stejné
 buňce, souvislost bloku (daná tím, že blok zabírá po sobě jdoucí hodiny), rozsah dne.
@@ -191,10 +196,12 @@ odvodit z učebny) — podle zadání.
 vidí ho červeně a opraví. Výhra vyžaduje nula konfliktů. (Přesah bloku mimo den se blokuje.)
 
 **Pohled po třídách s globální detekcí konfliktů.** Konflikt v 1.A může být kvůli 2.B — důvod je
-v tooltipu. Pohled „za učitele“ / „za učebnu“ zatím není.
+v tooltipu. Pohled „za učitele“ / „za učebnu“ zatím není. *(Překonáno: pohledy doplněny později,
+jen pro čtení.)*
 
 **Jen režim „na kola“.** Iron man (levely na sebe) není postaven; datový model je na to připravený
-(předchozí pozice by se vložily jako zamčené „dané“ kartičky).
+(předchozí pozice by se vložily jako zamčené „dané“ kartičky). *(Překonáno 07/2026: iron-man
+postaven — `given`/`carryFrom`, v kampani level l5.)*
 
 **Periody = 6 hodin/den** jako předpoklad. Demo data (učitelé, učebny) jsou výplň.
 
@@ -217,12 +224,14 @@ odkazu nepřepsalo vlastní rozehranou pozici daného levelu.
 
 ## 5. Otevřené body / co dořešit / TODO
 
-Od zadavatele:
-1. **Seznamy:** třídy; učebny (a ke každé budova Š101/H59/H618/OPMB); učitelé (křestní jména);
-   předměty s oborem.
-2. **Návrh levelů:** pro každý level co obsahuje (třídy/budovy/obory) a které cíle se mají splnit;
-   rozlišit tvrdé vs. herní.
-3. **Režim:** kola vs. iron man (nebo oba); zda chtít i pohled za učitele/učebnu.
+Od zadavatele (stav 07/2026):
+1. **Podvýběr skutečných jmen** pro 1:1 výměnu za zástupná (jediný zbývající vstup).
+   Rozsah: **12 křestních jmen učitelů, 19 názvů předmětů, 12 kódů učeben, volitelně
+   11 označení tříd** — přesné aktuální zástupné hodnoty a role jednotlivých učitelů
+   drží CLAUDE.md → „Co je rozpracované / TODO". Po výměně přeměřit řešitelnost.
+2. ~~Návrh levelů~~ — vyřešeno kampaní „naslepo" (níže); úpravy jdou dělat v editoru.
+3. ~~Režim kola vs. iron-man; pohledy za učitele/učebnu~~ — postaveno obojí
+   (iron-man = l5, pohledy hotové).
 
 **Obsah (07/2026):** kampaň 6 levelů postavená „naslepo" — svět inspirovaný skutečností
 (4 obory: informatika s mng. `IT`, elektronické počítače `EP`, slaboproud `ELE`,
@@ -261,7 +270,8 @@ importu, ✓ u dokončených levelů, sdílení pozice odkazem.
 
 ## 6. Spuštění a nasazení
 
-- **Lokálně:** otevři `rozvrh.html` v prohlížeči. Žádná instalace ani build.
-- **Render (Static Site):** přejmenuj na `index.html`, dej do repa, na Renderu vyber *Static Site*,
-  Free instance. Žádný build command není potřeba. Neusíná.
-- **Závislosti:** žádné. Vše je v jednom souboru.
+- **Lokálně:** otevři `index.html` v prohlížeči. Žádná instalace ani build.
+- **Render (Static Site):** repo na GitHub, na Renderu vyber *Static Site*, Free instance,
+  publish directory = kořen repa. Žádný build command není potřeba. Neusíná.
+- **Závislosti:** žádné. Vše je v jednom souboru. (Potřebuje prohlížeč ~2023+ — `color-mix`,
+  pointer events.)

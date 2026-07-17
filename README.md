@@ -14,7 +14,9 @@ Hráč přetahuje barevné kartičky (vyučované hodiny) do rozvrhu lichého a 
 učitel/učebna/třída, délka bloku) hlídá engine; měkké herní cíle (volný den učitele,
 zkrácený úvazek, předmět dopoledne…) se počítají do skóre.
 
-Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro úplný kontext.
+Stav: **hotová hra** — kampaň 6 levelů s měřeným balancem, editor, sdílení, mobilní
+i desktopové rozhraní. Zbývá nasazení na Render a volitelná výměna zástupných jmen za
+skutečné — viz [docs/handoff.md](docs/handoff.md) pro úplný kontext.
 
 ## Funkce
 
@@ -81,13 +83,17 @@ Protože je to čistý frontend bez DB, je to přesně tenhle případ.
 BoarShed/
 ├── index.html        # celá hra (HTML + CSS + vanilla JS, jeden soubor)
 ├── README.md         # tenhle soubor
-├── CLAUDE.md         # instrukce pro Claude Code
+├── CLAUDE.md         # instrukce pro Claude Code (architektura, svět kampaně, TODO)
 └── docs/
-    └── handoff.md    # předávací dokument: zadání, rozhodnutí, architektura, TODO
+    ├── handoff.md    # předávací dokument: zadání, rozhodnutí, architektura, TODO
+    └── review.md     # historické review zralosti (26. 6. 2026)
 ```
 
 ## Co dál
 
-Otevřené body a nápady (seznamy tříd/učeben/učitelů, návrh levelů, iron-man režim,
-pohledy za učitele/učebnu, generátor levelů…) jsou v
-[docs/handoff.md → sekce 5](docs/handoff.md).
+1. **Nasazení na Render** (postup výš) a doplnění odkazu na repo do modálu „O hře".
+2. Volitelně **výměna zástupných jmen za podvýběr skutečných** — 12 jmen učitelů,
+   19 názvů předmětů, 12 kódů učeben (přesný rozsah a role: CLAUDE.md → TODO).
+3. Ruční test dotyku na reálném mobilu.
+
+Ostatní otevřené nápady drží [docs/handoff.md → sekce 5](docs/handoff.md).
