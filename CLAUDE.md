@@ -55,6 +55,9 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     jen pro čtení (kontrola konfliktů). Helpery: `entitiesOf(view)`, `entityOf(card,view)`.
   - `pickedFrom` = původní pozice zvednuté kartičky; Esc, zrušené tažení i výběr jiné
     karty ji přes `restoreLifted()` vrací na místo.
+  - `assisted` = desku poskládal řešič nebo import → výhra ukáže jiný banner a NEdá ✓
+    (fér ✓). Nastavují randomFill/importStr, nulují ruční akce, undo/redo a loadLevel;
+    do exportu/autosave se propisuje jako `a:1`, takže přežije i reload.
   - `locked` = Set id kartiček zamčených levelem (`given`/`carryFrom`, aplikuje
     `applyGiven()` v `loadLevel`). Zamčené nejde zvednout/táhnout/odebrat, `clearAll`
     je zachová, autosave/import je nepřepisuje, řešič i kontrola řešitelnosti je berou
@@ -89,7 +92,12 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   kontroluje strukturu, id, typy cílů (`GOAL_TYPES`), `given` i `carryFrom`;
   řešitelnost jde otestovat před uložením (`checkSolvableAsync` přijímá i objekt
   levelu). Uložené levely drží Store klíč `customLevels`, v přepínači mají `*`,
-  načítá je `loadCustoms()`; přepínač staví `buildLevelSel()`.
+  načítá (a validuje) je `loadCustoms()`; přepínač staví `buildLevelSel()`.
+  Level jde sdílet odkazem `#l=<Base64 JSON>` (tlačítko „Odkaz na level“);
+  příjem řeší `importLevelStr()` — validace, uložení mezi vlastní, načtení.
+  Hash v initu: `#p=` pozice / `#l=` level, obojí až po `loadCustoms()`.
+- **O HŘE**: `aboutModal()` (ⓘ v hlavičce) — kredit AI vývoje a čísla balancu;
+  `REPO_URL` doplnit po zveřejnění repa.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
   `renderTabs` kreslí přepínač pohledu + záložky entit; `renderSchedule` umí všechny
   tři pohledy a překrývající se kartičky řeší „pruhy" (lanes), aby se neschovaly.

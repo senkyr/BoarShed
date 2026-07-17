@@ -40,6 +40,11 @@ Stav: **funkční kostra (MVP)** — viz [docs/handoff.md](docs/handoff.md) pro 
   jsou zamčené (🔒). Demo level 3 staví na tvém řešení levelu 2.
 - **Editor levelů** — vlastní levely jako JSON (šablona z existujícího levelu,
   validace, test řešitelnosti), ukládají se lokálně a v přepínači mají `*`.
+  Vlastní level jde **poslat odkazem** (`#l=…`) — příjemci se uloží mezi vlastní
+  a rovnou se načte.
+- **Fér ✓** — odznak u levelu je jen za vlastnoruční výhru; rozvrh poskládaný
+  řešičem nebo načtený z cizího odkazu ukáže výherní banner, ale ✓ nedá.
+- **ⓘ O hře** — jak hra vznikla (AI vývoj, 2026), čísla balancu a tip pro zvídavé.
 - **Ukládání** přes serializační řetězec (Base64 JSON) + pojmenované sloty; funguje
   i bez účtu a po nasazení. **Sdílení pozice odkazem** (`#p=…`). Dokončené levely
   mají ✓ v přepínači.

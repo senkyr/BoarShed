@@ -234,6 +234,15 @@ nalezeno a ověřeno enginem; řešitelnost všech levelů potvrzena vzorkován�
 20 000 vzorcích). Není to simulace reality — jména a předměty jde později 1:1 vyměnit
 za podvýběr skutečných (pak přeměřit řešitelnost).
 
+**Studentská edice (07/2026):** hra má druhé publikum — studenty (hrají intenzivněji než
+kolegové na akci) a roli demonstrátoru AI vývoje. Doplněno: **sdílení vlastních levelů
+odkazem** (`#l=…`, editor → „Odkaz na level“; příjemci se uloží mezi vlastní), **fér ✓**
+(výhra poskládaná řešičem nebo importem ukáže banner, ale odznak ✓ je jen za vlastnoruční
+výhru; příznak `a:1` přežívá v autosave i exportu) a **modál ⓘ O hře** (kredit AI vývoje,
+čísla balancu, tip na konzoli; `REPO_URL` doplnit po zveřejnění repa — veřejné repo je
+součást demonstrátoru). Konzolové nástroje (`checkSolvable` apod.) zůstávají záměrně
+přístupné — pro IT studenty easter egg, ne díra.
+
 Technické TODO / nápady:
 - Výměna zástupných předmětů/jmen za podvýběr skutečných (jen přejmenování v datech).
 - Případné další typy cílů podle potřeb. Pozn.: „vázanost předmětu na budovu"
