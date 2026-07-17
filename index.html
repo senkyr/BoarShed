@@ -70,6 +70,11 @@ try{
   #colGoals{flex:0 0 280px}
   @media(max-width:1100px){.wrap{flex-direction:column}
     #colPalette,#colGoals{flex:1 1 auto;width:100%}}
+  /* fixní toolbar se na úzkých displejích zalomí do víc řádků — obsah potřebuje větší rezervu */
+  @media(max-width:900px){.wrap{padding-bottom:150px}}
+  @media(max-width:560px){.wrap{padding-bottom:200px}}
+  /* úzké sloupce transponovaného rozvrhu: řádek budovy skrýt, ať se názvy nelámou tolik */
+  @media(max-width:600px){.pcard .sub:last-child{display:none}}
 
   /* ---------- KARTIČKY ---------- */
   .palette{display:flex;flex-direction:column;gap:8px}
@@ -101,8 +106,8 @@ try{
   .gh{font-size:12px;color:var(--ink-soft);text-align:center;align-self:center;padding:2px 0;font-weight:600}
   .gp{font-size:11px;color:var(--ink-soft);text-align:right;padding-right:6px;align-self:center}
   .cell{border:1px dashed var(--line);border-radius:7px;min-height:46px;background:var(--surface-2)}
-  .cell.drop{border-color:var(--accent-soft);background:color-mix(in srgb,var(--accent) 7%,var(--surface-2))}
-  .cell.over{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+  .cell.drop{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface-2))} /* výraznější i na slunci */
+  .cell.over{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--surface-2))}
   .pcard{border:1px solid var(--line);border-left:4px solid var(--f);border-radius:7px;
     background:color-mix(in srgb,var(--f) 16%,var(--surface));padding:4px 6px;overflow:hidden;
     display:flex;flex-direction:column;cursor:grab;position:relative;overflow-wrap:anywhere}
@@ -1460,6 +1465,19 @@ async function loadCustoms(){
   }catch(e){}
   buildLevelSel();
 }
+function handleHash(){ // #p=<pozice> / #l=<level>; vrací true, když hash zkonzumoval
+  const h=location.hash.match(/^#(p|l)=(.+)/); if(!h) return false;
+  let ok=false;
+  try{
+    const val=decodeURIComponent(h[2]);
+    ok = h[1]==="p" ? importStr(val,{autosave:false}) : importLevelStr(val);
+  }catch(e){}
+  if(ok){
+    try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} // reload už nepřepíše rozehranou pozici
+    if(h[1]==="p") setStatus("Načtena sdílená pozice.");
+  }
+  return ok;
+}
 function importLevelStr(str){ // sdílený level z odkazu (#l=…) → uložit mezi vlastní a načíst
   try{
     const o=JSON.parse(b64d(str.trim()));
@@ -1584,17 +1602,9 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   // nejdřív vlastní levely (sdílený odkaz může mířit na custom level), pak hash:
   // #p=<pozice> nebo #l=<celý level>; jinak výchozí level
-  loadCustoms().then(()=>{
-    const h=location.hash.match(/^#(p|l)=(.+)/); let handled=false;
-    if(h){ try{
-      const val=decodeURIComponent(h[2]);
-      handled = h[1]==="p" ? importStr(val,{autosave:false}) : importLevelStr(val);
-    }catch(e){} }
-    if(handled){
-      try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} // reload už nepřepíše rozehranou pozici
-      if(h[1]==="p") setStatus("Načtena sdílená pozice.");
-    }else loadLevel(LEVELS[0].id);
-  });
+  loadCustoms().then(()=>{ if(!handleHash()) loadLevel(LEVELS[0].id); });
+  // vložení odkazu do adresního řádku nad běžící hrou reload nevyvolá — chytit hashchange
+  window.addEventListener("hashchange",handleHash);
 });
 </script>
 </body>

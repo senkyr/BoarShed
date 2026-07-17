@@ -95,7 +95,8 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   načítá (a validuje) je `loadCustoms()`; přepínač staví `buildLevelSel()`.
   Level jde sdílet odkazem `#l=<Base64 JSON>` (tlačítko „Odkaz na level“);
   příjem řeší `importLevelStr()` — validace, uložení mezi vlastní, načtení.
-  Hash v initu: `#p=` pozice / `#l=` level, obojí až po `loadCustoms()`.
+  Hash v initu: `#p=` pozice / `#l=` level, obojí až po `loadCustoms()`; vložení
+  odkazu nad běžící hrou chytá `hashchange` (společná cesta `handleHash()`).
 - **O HŘE**: `aboutModal()` (ⓘ v hlavičce) — kredit AI vývoje a čísla balancu;
   `REPO_URL` doplnit po zveřejnění repa.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
@@ -148,7 +149,9 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   slot, zkopíruj odkaz a otevři ho (načte pozici, hash zmizí z URL), přepni motiv
   (tmavý nesmí při načtení bliknout světlým). V l5 ověř zamčené kartičky (🔒 — nejde
   zvednout, přežijí Smazat) a v Editoru ulož/smaž zkušební level (objeví se s `*`
-  v přepínači). Žádné chyby v konzoli. Dotyk otestuj i na reálném zařízení, ne jen
+  v přepínači). Projdi světlý i tmavý motiv a úzké okno (<600 px): fixní lišta nesmí
+  zakrývat spodek obsahu (padding-bottom media queries) a umístěné kartičky skrývají
+  řádek budovy. Žádné chyby v konzoli. Dotyk otestuj i na reálném zařízení, ne jen
   v emulaci.
 - **Po úpravě dat/cílů levelu** spusť „Řešitelnost?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.
