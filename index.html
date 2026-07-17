@@ -1166,7 +1166,9 @@ function importStr(str,opts){
 function autosave(){ if(Store) Store.set("auto:"+LVL.id, exportStr()); }
 async function loadAutosave(){
   if(!Store) return;
+  const lvl=LVL; // hráč mohl během čekání na Store přepnout level
   const s=await Store.get("auto:"+LVL.id);
+  if(LVL!==lvl) return;
   if(s){ try{
     const saved=readPlacements(JSON.parse(b64d(s)));
     for(const id in saved){ if(!S.locked.has(id)) S.placements[id]=saved[id]; }
@@ -1303,12 +1305,13 @@ function solvableModal(){
    LEVELY / TÉMA / INIT
    ===================================================================== */
 function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man přenos (carryFrom)
+  const lvl=LVL; // hráč mohl během čekání na Store přepnout level
   S.locked=new Set();
   const lockAll=src=>{ for(const id in src){ if(validPlacement(id,src[id])){ S.placements[id]={w:src[id].w,d:src[id].d,p:src[id].p}; S.locked.add(id); } } };
   lockAll(LVL.given||{});
   if(LVL.carryFrom && Store){
     return Store.get("auto:"+LVL.carryFrom).then(s=>{
-      if(!s) return; // bez rozehraného zdroje zůstává výchozí given
+      if(LVL!==lvl||!s) return; // level mezitím přepnut / bez rozehraného zdroje zůstává given
       try{
         const pl=JSON.parse(b64d(s)).pl||{};
         if(!Object.keys(pl).length) return;
@@ -1325,12 +1328,12 @@ function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
   S.placements={}; S.selected=null; S.pickedFrom=null; S.view="class"; S.active=classesOf()[0];
   HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
-  const ready=applyGiven();
+  const ready=applyGiven(), cur=LVL;
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
   render();
   setStatus("Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).");
-  if(doAutoload!==false) ready.then(loadAutosave);
+  if(doAutoload!==false) ready.then(()=>{ if(LVL===cur) loadAutosave(); });
 }
 
 function setTheme(t){
@@ -1357,8 +1360,10 @@ function markDone(id){
    LEVELS). Ukládají se přes Store (klíč "customLevels"), v přepínači
    mají hvězdičku. Validace + test řešitelnosti před uložením.
    ===================================================================== */
-const GOAL_TYPES=["all_placed","subject_time","subject_day","subject_week","teacher_free_day",
-  "teacher_only_week","teacher_transition_gap","teacher_time","class_no_gaps","max_per_day","lunch_break"];
+const GOAL_TYPES={ // typ cíle → povinné parametry v p
+  all_placed:[], subject_time:["subject"], subject_day:["subject","day"], subject_week:["subject","week"],
+  teacher_free_day:["teacher"], teacher_only_week:["teacher","week"], teacher_transition_gap:["teacher"],
+  teacher_time:["teacher"], class_no_gaps:["cls"], max_per_day:["max"], lunch_break:["cls","period"] };
 function validateLevel(o){
   const errs=[];
   if(!o||typeof o!=="object") return ["Není to objekt."];
@@ -1391,10 +1396,15 @@ function validateLevel(o){
   }
   if(!Array.isArray(o.goals)) errs.push("goals musí být pole.");
   else o.goals.forEach((g,i)=>{
-    if(!g||!GOAL_TYPES.includes(g.type)) errs.push("goals["+i+"]: neznámý type „"+(g&&g.type)+"“. Povolené: "+GOAL_TYPES.join(", ")+".");
-    if(!g||!g.label) errs.push("goals["+i+"]: chybí label.");
+    if(!g||!GOAL_TYPES[g.type]){ errs.push("goals["+i+"]: neznámý type „"+(g&&g.type)+"“. Povolené: "+Object.keys(GOAL_TYPES).join(", ")+"."); return; }
+    if(!g.label) errs.push("goals["+i+"]: chybí label.");
+    const P=g.p||{}; // chybějící parametry = cíl je tiše triviální nebo nesplnitelný — radši chyba
+    GOAL_TYPES[g.type].forEach(k=>{ if(P[k]===undefined) errs.push("goals["+i+"] ("+g.type+"): chybí parametr p."+k+"."); });
+    if(g.type==="max_per_day" && P.cls===undefined && P.teacher===undefined) errs.push("goals["+i+"]: max_per_day potřebuje p.cls nebo p.teacher.");
+    if(g.type==="subject_time" && P.maxPeriod===undefined && P.minPeriod===undefined && P.exact===undefined) errs.push("goals["+i+"]: subject_time potřebuje maxPeriod, minPeriod nebo exact.");
+    if(g.type==="teacher_time" && P.maxPeriod===undefined && P.minPeriod===undefined && !P.forbidPeriods && !P.forbidDays) errs.push("goals["+i+"]: teacher_time potřebuje aspoň jedno omezení.");
   });
-  if(o.carryFrom&&!LEVELS.some(l=>l.id===o.carryFrom)&&o.carryFrom!==o.id) errs.push("carryFrom: level „"+o.carryFrom+"“ neexistuje.");
+  if(o.carryFrom&&(o.carryFrom===o.id||!LEVELS.some(l=>l.id===o.carryFrom))) errs.push("carryFrom: level „"+o.carryFrom+"“ neexistuje nebo odkazuje sám na sebe.");
   return errs;
 }
 function saveCustoms(){ if(Store) Store.set("customLevels", JSON.stringify(LEVELS.filter(l=>l.custom))); }
