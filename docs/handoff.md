@@ -248,9 +248,10 @@ kolegové na akci) a roli demonstrátoru AI vývoje. Doplněno: **sdílení vlas
 odkazem** (`#l=…`, editor → „Odkaz na level“; příjemci se uloží mezi vlastní), **fér ✓**
 (výhra poskládaná řešičem nebo importem ukáže banner, ale odznak ✓ je jen za vlastnoruční
 výhru; příznak `a:1` přežívá v autosave i exportu) a **modál ⓘ O hře** (kredit AI vývoje,
-čísla balancu, tip na konzoli; `REPO_URL` doplnit po zveřejnění repa — veřejné repo je
-součást demonstrátoru). Konzolové nástroje (`checkSolvable` apod.) zůstávají záměrně
-přístupné — pro IT studenty easter egg, ne díra.
+čísla balancu, tip na konzoli, odkaz na repo). Konzolové nástroje (`checkSolvable` apod.)
+zůstávají záměrně přístupné — pro IT studenty easter egg, ne díra. **Nasazeno 27. 7. 2026:**
+veřejné repo `senkyr/BoarShed` (projektový gh účet `senkyr`, ne cortexový `jakub-senkyr`),
+hosting GitHub Pages — https://senkyr.github.io/BoarShed/ (push do `main` = redeploy).
 
 Technické TODO / nápady:
 - Výměna zástupných předmětů/jmen za podvýběr skutečných (jen přejmenování v datech).
@@ -270,8 +271,8 @@ importu, ✓ u dokončených levelů, sdílení pozice odkazem.
 
 ## 6. Spuštění a nasazení
 
+- **Produkce:** https://senkyr.github.io/BoarShed/ — GitHub Pages z repa `senkyr/BoarShed`
+  (větev `main`, kořen). Push do `main` = automatický redeploy.
 - **Lokálně:** otevři `index.html` v prohlížeči. Žádná instalace ani build.
-- **Render (Static Site):** repo na GitHub, na Renderu vyber *Static Site*, Free instance,
-  publish directory = kořen repa. Žádný build command není potřeba. Neusíná.
 - **Závislosti:** žádné. Vše je v jednom souboru. (Potřebuje prohlížeč ~2023+ — `color-mix`,
   pointer events.)

@@ -97,8 +97,8 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   příjem řeší `importLevelStr()` — validace, uložení mezi vlastní, načtení.
   Hash v initu: `#p=` pozice / `#l=` level, obojí až po `loadCustoms()`; vložení
   odkazu nad běžící hrou chytá `hashchange` (společná cesta `handleHash()`).
-- **O HŘE**: `aboutModal()` (ⓘ v hlavičce) — kredit AI vývoje a čísla balancu;
-  `REPO_URL` doplnit po zveřejnění repa.
+- **O HŘE**: `aboutModal()` (ⓘ v hlavičce) — kredit AI vývoje, čísla balancu,
+  odkaz na repo (`REPO_URL` = https://github.com/senkyr/BoarShed).
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
   `renderTabs` kreslí přepínač pohledu + záložky entit; `renderSchedule` umí všechny
   tři pohledy a překrývající se kartičky řeší „pruhy" (lanes), aby se neschovaly.
@@ -183,11 +183,14 @@ Obsah je hotový „naslepo": kampaň 6 levelů (l1–l6, viz SVĚT KAMPANĚ vý
 vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6
 vyhrány, 07/2026).
 
+Nasazeno (27. 7. 2026): veřejné repo `senkyr/BoarShed`, hosting GitHub Pages
+(https://senkyr.github.io/BoarShed/, větev `main`, push = redeploy); `REPO_URL`
+v `aboutModal` doplněna. Pozor: gh účet `senkyr` je projektový — Cortex jede na
+`jakub-senkyr` (pravidla přepínání: `cortex-meta:setup.md` → „GitHub účty").
+
 Zbývá:
 
-1. **Nasazení na Render** (postup v README) a poté doplnit `REPO_URL` v `aboutModal`
-   (repo veřejné — je součást role AI demonstrátoru).
-2. **Výměna zástupných jmen za podvýběr skutečných** — čistě 1:1 přejmenování v datech
+1. **Výměna zástupných jmen za podvýběr skutečných** — čistě 1:1 přejmenování v datech
    (pole `LEVELS`), struktura ani cíle se nemění; po výměně přeměřit řešitelnost.
    Rozsah, který je potřeba dodat (aktuální zástupné hodnoty a jejich role):
    - **12 křestních jmen učitelů**: Petr + Eva (IT), Karel + Ondřej (EP), Jan (EP/EL,
@@ -203,8 +206,8 @@ Zbývá:
      dílny), C1 (CNC). Budova OPMB ze zadání zatím nepoužita (kampani stačí 3 budovy).
    - volitelně **11 označení tříd** (teď `1.IT`, `1.EP`, `2.EL`, `2.ST`, `3.IT`,
      `3.EP`, `3.ST`, `4.IT`, `4.EP`, `4.EL`, `4.ST`).
-3. Ruční otestování dotyku na reálném mobilu/tabletu (hold ~200 ms = tažení,
-   švih = scroll).
+2. Ruční otestování dotyku na reálném mobilu/tabletu (hold ~200 ms = tažení,
+   švih = scroll) — na nasazené URL.
 
 Pozn.: „vázanost předmětu na budovu" z původního zadání není herní cíl — budova je
 pevná vlastnost kartičky, řeší se návrhem dat levelu.

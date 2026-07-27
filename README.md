@@ -14,9 +14,9 @@ Hráč přetahuje barevné kartičky (vyučované hodiny) do rozvrhu lichého a 
 učitel/učebna/třída, délka bloku) hlídá engine; měkké herní cíle (volný den učitele,
 zkrácený úvazek, předmět dopoledne…) se počítají do skóre.
 
-Stav: **hotová hra** — kampaň 6 levelů s měřeným balancem, editor, sdílení, mobilní
-i desktopové rozhraní. Zbývá nasazení na Render a volitelná výměna zástupných jmen za
-skutečné — viz [docs/handoff.md](docs/handoff.md) pro úplný kontext.
+Stav: **hotová a nasazená hra** — kampaň 6 levelů s měřeným balancem, editor, sdílení,
+mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShed/**.
+Úplný kontext: [docs/handoff.md](docs/handoff.md).
 
 ## Funkce
 
@@ -58,7 +58,12 @@ skutečné — viz [docs/handoff.md](docs/handoff.md) pro úplný kontext.
   elektrotechnika, strojírenství), ročníky 1–4, tři budovy (Š101, H59, H618),
   zástupné předměty a křestní jména — později lze 1:1 vyměnit za podvýběr skutečných.
 
-## Spuštění
+## Kde se hraje
+
+**https://senkyr.github.io/BoarShed/** — hostováno přes GitHub Pages přímo z tohoto repa
+(větev `main`, žádný build). Push do `main` = automatický redeploy během ~minuty.
+
+## Spuštění lokálně
 
 Žádná instalace, žádný build, žádné závislosti.
 
@@ -66,16 +71,8 @@ skutečné — viz [docs/handoff.md](docs/handoff.md) pro úplný kontext.
 Otevři index.html v prohlížeči.
 ```
 
-## Nasazení (Render — Static Site)
-
-Soubor `index.html` je rovnou nasaditelný jako **Static Site** na Renderu (Free):
-
-1. Repo nahraj na GitHub / GitLab.
-2. Na Renderu vyber **Static Site**, Free instance.
-3. Build command: *(žádný)*. Publish directory: *kořen repa* (`.`).
-
-Static Site je CDN bez časového limitu — **neusíná** (na rozdíl od Free Web Service).
-Protože je to čistý frontend bez DB, je to přesně tenhle případ.
+(Alternativa hostingu: Render Static Site — stejný soubor, build žádný, publish root.
+Není potřeba, GitHub Pages stačí.)
 
 ## Struktura projektu
 
@@ -91,9 +88,8 @@ BoarShed/
 
 ## Co dál
 
-1. **Nasazení na Render** (postup výš) a doplnění odkazu na repo do modálu „O hře".
-2. Volitelně **výměna zástupných jmen za podvýběr skutečných** — 12 jmen učitelů,
+1. Volitelně **výměna zástupných jmen za podvýběr skutečných** — 12 jmen učitelů,
    19 názvů předmětů, 12 kódů učeben (přesný rozsah a role: CLAUDE.md → TODO).
-3. Ruční test dotyku na reálném mobilu.
+2. Ruční test dotyku na reálném mobilu (na nasazené URL).
 
 Ostatní otevřené nápady drží [docs/handoff.md → sekce 5](docs/handoff.md).
