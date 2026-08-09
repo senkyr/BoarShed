@@ -84,16 +84,21 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   - **kampaň l1–l7 postupuje po ročnících:** l1 rozjezd (1.IT) · l2 první ročníky ·
     l3 druhé · l4 třetí · l5 iron-man nad l4 · l6 čtvrté ročníky · l7 „Celá škola"
     (**všech 16 tříd** = 4 obory × 4 ročníky, 80 kartiček).
-  - měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 20 000 vzorků):
-    l1 ≈ 10,3 % · l2 ≈ 4,5 % · l3 ≈ 2,6 % · l4 ≈ 1,2 % · l5 (záměrný oddech) ≈ 3,1 % ·
-    l6 ≈ 0,9 % · l7 ≈ 0,6 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
+  - měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 20 000 vzorků; přeměřeno
+    9. 8. 2026 po zpřísnění `teacher_transition_gap` — vyžaduje skutečný přechod):
+    l1 ≈ 10,3 % · l2 ≈ 4,5 % · l3 ≈ 0,10 % · l4 ≈ 0,62 % · l5 (záměrný oddech) ≈ 3,1 % ·
+    l6 ≈ 0,07 % · l7 ≈ 0,24 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
     **Měř na ≥ 20 000 vzorcích** — na 4 000 kolísá odhad u l1 o ±1,5 p. b., což stačí
     na falešný dojem, že se obtížnost posunula.
   - **Pozor, co ta metrika je:** podíl výher mezi *náhodnými* rozvrhy. Mezi levely různé
     velikosti není srovnatelná — l7 má stejný řád jako l6, ale 80 kartiček proti 24,
     takže pro člověka je řádově těžší. A cíl, který se člověku plní snadno (Alena jen
     v sudém týdnu), srazí metriku víc než cíl vyžadující koordinaci. Číslo ber jako
-    kontrolu „je to vůbec vyhratelné", ne jako míru zážitku.
+    kontrolu „je to vůbec vyhratelné", ne jako míru zážitku. Přesně tohle dělá
+    i zpřísněný vynucený přechod (náhodně vznikne v ~8 % u Jana se 3 kartami ve
+    2 týdnech, člověk ho postaví jedním záměrným tahem) — proto je od 9. 8. 2026
+    metrika l3/l6 pod l4/l7 a křivka po levelech už není monotónní, ač pro člověka
+    obtížnost pořád zhruba roste.
 - **ÚLOŽIŠTĚ**: adaptér `Store` s feature-detekcí `window.storage` → `localStorage` → null.
   Páteř ukládání je serializační řetězec Base64(JSON), funguje vždy. Import (modál,
   autosave i URL hash `#p=<řetězec>`) validuje placementy přes `validPlacement()`
@@ -106,14 +111,20 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     entita v té dimenzi. Umisťovat lze jen ve `view==="class"`; `teacher`/`room` jsou
     jen pro čtení (kontrola konfliktů). Helpery: `entitiesOf(view)`, `entityOf(card,view)`.
   - `pickedFrom` = původní pozice zvednuté kartičky; Esc, zrušené tažení i výběr jiné
-    karty ji přes `restoreLifted()` vrací na místo.
+    karty ji přes `restoreLifted()` vrací na místo. Přepnutí záložky/pohledu jinam ruší
+    výběr (`dropSelection()`) a drop zóny svítí jen v rozvrhu třídy vybrané kartičky —
+    jinak šla kartička položit „naslepo“ do rozvrhu, který nebyl vidět (oprava 9. 8. 2026).
   - `assisted` = desku poskládal řešič nebo import → výhra ukáže jiný banner a NEdá ✓
     (fér ✓). Nastavují randomFill/importStr, nulují ruční akce, undo/redo a loadLevel;
     do exportu/autosave se propisuje jako `a:1`, takže přežije i reload.
   - `locked` = Set id kartiček zamčených levelem (`given`/`carryFrom`, aplikuje
     `applyGiven()` v `loadLevel`). Zamčené nejde zvednout/táhnout/odebrat, `clearAll`
     je zachová, autosave/import je nepřepisuje, řešič i kontrola řešitelnosti je berou
-    jako pevný základ. V rozvrhu mají 🔒.
+    jako pevný základ. V rozvrhu mají 🔒. Přenos `carryFrom`, který by sám o sobě
+    znemožnil některý cíl (kontroluje `goalDeadWithLocked` — např. zamčené 3 hodiny
+    v den s cílem „max 2 denně“), se nepoužije: základ spadne na vzorové `given`
+    a hráč dostane hlášku s cílem, kvůli kterému se to stalo (oprava 9. 8. 2026 —
+    vlastní výherní pozice z l4 uměla udělat l5 neřešitelný).
 - **HISTORIE**: `HIST` + `pushHist/undo/redo` — snapshoty placements, per-level,
   tlačítka ↶/↷ + Ctrl+Z / Ctrl+Y (ignorují fokus v input/textarea). `pushHist()` se
   volá PŘED mutací placements; snapshot počítá zvednutou kartičku na jejím původním
@@ -154,6 +165,9 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
   `renderTabs` kreslí přepínač pohledu + záložky entit; `renderSchedule` umí všechny
   tři pohledy a překrývající se kartičky řeší „pruhy" (lanes), aby se neschovaly.
+  Vícehodinové bloky mají čárku na každé hranici hodiny (`.tick`, kolmo na osu hodin
+  dle orientace) a štítek délky `.durb` („2h“) vpravo dole — dvojhodinovka musí být
+  poznat na první pohled i uvnitř pruhu.
   **Orientace** dle šířky (`isHorizontal()`, breakpoint 820 px): desktop „na šířku"
   (dny = řádky, hodiny = sloupce), úzký displej transponovaně (hodiny = řádky, dolů).
   Pruhy se proto skládají kolmo na osu hodin (vodorovně vs. svisle). Při překlopení
@@ -174,7 +188,7 @@ tvar `{id, type, p:{...parametry...}, label}`. Dostupné typy a jejich `p`:
 | `subject_week` | `subject, cls?, week` | předmět v konkrétním týdnu (0/1) |
 | `teacher_free_day` | `teacher` | učitel má někdy den volno |
 | `teacher_only_week` | `teacher, week` | celý úvazek v jednom týdnu |
-| `teacher_transition_gap` | `teacher` | po přechodu mezi budovami volná hodina |
+| `teacher_transition_gap` | `teacher` | aspoň jednou přejde mezi budovami a po KAŽDÉM přechodu má volnou hodinu (9. 8. 2026: bez povinného přechodu byl cíl zadarmo — stačilo hodiny rozházet do různých dnů) |
 | `class_no_gaps` | `cls` | třída bez oken |
 | `max_per_day` | `cls?` **nebo** `teacher?`, `max` | max hodin denně |
 | `lunch_break` | `cls, period` | třída má danou hodinu volnou (oběd) |
@@ -192,9 +206,12 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
 - **Lokálně:** otevři `index.html` v prohlížeči (žádný server není potřeba).
 - **Smoke test po zásahu:** projdi kampaň (minimálně l1, l2 a l5) — umísti kartu klikem i tahem
   (myší; na dotyku podržet ~200 ms, švih přes kartu musí scrollovat), zruš tažení
-  puštěním mimo rozvrh a Escapem (karta se vrátí na původní místo), vyvolej konflikt
+  puštěním mimo rozvrh a Escapem (karta se vrátí na původní místo), s vybranou kartou
+  přepni záložku jiné třídy (výběr se musí zrušit a drop zóny zhasnout — kartička nesmí
+  jít položit do rozvrhu cizí třídy), vyvolej konflikt
   (musí zčervenat + tooltip), překryj dvě karty stejné třídy (musí být vidět vedle
-  sebe / nad sebou, ne zmizet), přepni pohled Třídy/Učitelé/Učebny (učitel/učebna jen
+  sebe / nad sebou, ne zmizet), zkontroluj dvojhodinovku (čárka na hranici hodiny +
+  štítek „2h“, v obou orientacích), přepni pohled Třídy/Učitelé/Učebny (učitel/učebna jen
   pro čtení), zúži okno pod ~820 px (rozvrh se překlopí na hodiny dolů), spusť
   „Náhodně" (i s checkboxem měkkých cílů) a „Řešitelnost?" (modál s průběhem, jde
   zrušit), vyzkoušej ↶ Zpět / ↷ Znovu (i Ctrl+Z/Y), ulož/načti řetězec i pojmenovaný
@@ -230,6 +247,13 @@ dokončených levelů (✓), sdílení pozice přes URL hash, motiv bez flashe, 
 vlastní levely ve Store, sdílení levelů odkazem `#l=`), **chytřejší řešič**
 (heuristika delších bloků, volitelné plnění měkkých cílů, hlášení co zablokovalo
 doplnění), **fér ✓** (výhra řešičem/importem nedává odznak) a **modál ⓘ O hře**.
+
+Opravy z hraní 9. 8. 2026: kartičku už nejde položit „naslepo“ přes záložku cizí třídy
+(přepnutí záložky ruší výběr + drop zóny jen ve vlastní třídě), `teacher_transition_gap`
+vyžaduje aspoň jeden skutečný přechod (dřív šel splnit rozházením hodin do různých dnů —
+po změně přeměřena obtížnost l3/l4/l6/l7), dvojhodinovky dostaly čárky na hranicích hodin
++ štítek „2h“ a carryFrom přenos, který by znemožnil cíl levelu, padá na vzorové `given`
+s hláškou (`goalDeadWithLocked`).
 
 Obsah je hotový „naslepo": kampaň 7 levelů (l1–l7, viz SVĚT KAMPANĚ výš), obtížnost
 vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6

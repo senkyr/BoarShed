@@ -42,7 +42,8 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
   jen do 4.–5. hodiny (tvrdé pravidlo, ne cíl). Nemá učitele ani učebnu, takže celá škola
   smí obědvat naráz, ale třídě zabírá slot.
 - **Iron-man**: level může stavět na pozici z předchozího levelu — přenesené kartičky
-  jsou zamčené (🔒). Demo level 3 staví na tvém řešení levelu 2.
+  jsou zamčené (🔒). V kampani staví level 5 na tvém řešení levelu 4; kdyby tvoje
+  pozice zdejší požadavky znemožňovala, dostaneš místo ní vzorové řešení (s hláškou).
 - **Editor levelů** — vlastní levely jako JSON (šablona z existujícího levelu,
   validace, test řešitelnosti), ukládají se lokálně a v přepínači mají `*`.
   Vlastní level jde **poslat odkazem** (`#l=…`) — příjemci se uloží mezi vlastní
@@ -54,8 +55,9 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
   i bez účtu a po nasazení. **Sdílení pozice odkazem** (`#p=…`). Dokončené levely
   mají ✓ v přepínači.
 - Světlý/tmavý motiv (CSS proměnné), respektuje systémovou preferenci, volba se pamatuje.
-- **Kampaň 7 levelů** s měřenou rostoucí obtížností (výhra v ~10 % → ~0,6 % náhodných
-  platných rozvrhů): rozjezd → první ročníky → druhé → třetí → iron-man dostavba →
+- **Kampaň 7 levelů** s měřenou rostoucí obtížností (výhra v ~10 % náhodných platných
+  rozvrhů v rozjezdu, v setinách až desetinách procenta ke konci):
+  rozjezd → první ročníky → druhé → třetí → iron-man dostavba →
   čtvrté ročníky → finále **„Celá škola"** se všemi 16 třídami. Svět je inspirovaný skutečností:
   4 obory (Informatika a management, elektronické počítače, slaboproudá
   elektrotechnika, strojírenství), ročníky 1–4, tři budovy se skutečnými učebnami

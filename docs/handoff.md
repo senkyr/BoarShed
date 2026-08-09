@@ -87,6 +87,15 @@ layout (rezerva pod zalomenou lištou, výraznější drop zóny i na slunci, sk
 v úzkých buňkách), studentská edice (detail v §5) a **ruční playtest** — l1–l4 + l6 odehrány
 a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 
+**Opravy z hraní (9. 8. 2026)** — čtyři nálezy z reálného hraní: (1) kartičku šlo s výběrem
+přepnout na záložku jiné třídy a položit „naslepo" do rozvrhu, který nebyl vidět — přepnutí
+záložky/pohledu teď výběr ruší a drop zóny svítí jen ve vlastní třídě; (2) cíl
+`teacher_transition_gap` šel splnit rozházením hodin učitele do různých dnů (žádné přebíhání) —
+teď vyžaduje aspoň jeden skutečný přechod a po každém volnou hodinu, obtížnost l3/l4/l6/l7
+přeměřena; (3) dvojhodinovky nebyly v rozvrhu poznat — přidány čárky na hranicích hodin
+a štítek „2h"; (4) iron-man přenos do l5 uměl level učinit neřešitelným (zamčené 3 hodiny
+3.IT v jednom dni vs. cíl „max 2 denně") — viz pojistka `goalDeadWithLocked` v §5.
+
 **Nařízená pauza (8/2026)** — každá třída má kartičku `Oběd` (`kind:"break"`, šrafovaná).
 Engine ji pustí jen do obědového okna (`LVL.breakWindow`, výchozí 4.–5. hodina) — tvrdé
 pravidlo, ne herní cíl; jako cíl by u l7 se 16 třídami znemožnil ověření vzorkováním.
@@ -248,10 +257,12 @@ Od zadavatele (stav 07/2026):
 skutečností (4 obory: Informatika a management `IT`, elektronické počítače `EP`, slaboproud
 `ELE`, strojírenství `STR`; ročníky 1–4; budovy Š101/H59/H618 + externí tělocvičny;
 12 učitelů se skutečnými křestními jmény; zástupné předměty). Obtížnost balancovaná simulacemi
-(podíl výher mezi náhodnými platnými rozvrhy, 20 000 vzorků): l1 10,3 % → l2 4,5 % →
-l3 2,6 % → l4 1,2 % → l5 iron-man 3,1 % (záměrný oddech) → l6 0,9 % →
-l7 „Celá škola" 0,6 %. Metrika není srovnatelná mezi levely různé velikosti — l7 má
-stejný řád jako l6, ale 64 kartiček proti 20.
+(podíl výher mezi náhodnými platnými rozvrhy, 20 000 vzorků; přeměřeno 9. 8. 2026 po
+zpřísnění `teacher_transition_gap`): l1 10,3 % → l2 4,5 % → l3 0,10 % → l4 0,62 % →
+l5 iron-man 3,1 % (záměrný oddech) → l6 0,07 % → l7 „Celá škola" 0,24 %. Metrika není
+srovnatelná mezi levely různé velikosti a „záměrný tah" (vynucený přechod) ji sráží víc,
+než odpovídá lidské obtížnosti — po zpřísnění proto křivka po levelech není monotónní
+(detail: CLAUDE.md → „Pozor, co ta metrika je").
 Vzorové řešení l4 (given pro l5) bylo nalezeno a ověřeno enginem; řešitelnost všech
 levelů potvrzena vzorkováním. Není to simulace reality — jména a předměty jde později
 1:1 vyměnit za podvýběr skutečných (pak přeměřit řešitelnost).
@@ -271,8 +282,11 @@ Technické TODO / nápady:
 - Případné další typy cílů podle potřeb. Pozn.: „vázanost předmětu na budovu"
   není herní cíl — budova je pevná vlastnost kartičky, řeší se návrhem dat levelu.
 - Editor levelů: případně formulářová nadstavba nad JSON (teď se edituje JSON přímo).
-- Iron-man: `carryFrom` přenáší autosave zdrojového levelu (nemusí to být výherní pozice);
-  případně zpřísnit na „přenést jen po výhře".
+- Iron-man: `carryFrom` přenáší autosave zdrojového levelu (nemusí to být výherní pozice).
+  Přenos, který by sám o sobě znemožnil některý cíl cílového levelu, se od 9. 8. 2026
+  nepoužije — základ spadne na vzorové `given` s hláškou (`goalDeadWithLocked`).
+  Dřívější nápad „přenést jen po výhře" by nestačil: i výherní pozice l4 uměla
+  porušit cíle l5 (tři hodiny 3.IT v jednom dni vs. „max 2 denně").
 
 Hotové z původního TODO (viz §2): pohledy za učitele/učebnu, kontrola řešitelnosti, dotykový
 pointer-drag, iron-man (zamčené kartičky + `carryFrom`), editor levelů, chytřejší řešič

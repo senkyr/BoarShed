@@ -123,6 +123,12 @@ try{
   .pcard .x{position:absolute;top:2px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
     border-radius:5px;font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line)}
   .pcard .x:hover{color:var(--bad);border-color:var(--bad)}
+  /* vícehodinové bloky: čárky na hranicích hodin + štítek délky — ať je dvojhodinovka poznat na první pohled */
+  .pcard .tick{position:absolute;pointer-events:none;opacity:.5}
+  .pcard .tick.h{top:3px;bottom:3px;width:0;border-left:1px dashed var(--ink-soft)}
+  .pcard .tick.v{left:3px;right:3px;height:0;border-top:1px dashed var(--ink-soft)}
+  .pcard .durb{position:absolute;bottom:2px;right:3px;font-size:9px;line-height:1.3;color:var(--ink-soft);
+    background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 3px}
 
   /* ---------- POINTER DRAG ---------- */
   .card,.pcard{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -709,16 +715,19 @@ function evalGoal(g){
       return true;
     }
     case "teacher_transition_gap":{
-      // učitel nesmí mít dvě po sobě jdoucí hodiny v různých budovách bez volné hodiny mezi
+      // učitel aspoň jednou přejde mezi budovami a po KAŽDÉM přechodu má volnou hodinu.
+      // Bez požadavku na existenci přechodu byl cíl zadarmo — stačilo rozházet
+      // hodiny do různých dnů a „přebíhání“ se nekonalo.
       const fn=c=>c.teacher===P.teacher;
       if(!allPlaced(fn)) return false; // konzistentně s ostatními učitelskými cíli
       const mine=placedCardsFor(fn);
+      let transitions=0;
       for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
         const day=mine.filter(x=>x.pl.w===w&&x.pl.d===d).map(x=>({s:x.pl.p,e:x.pl.p+x.c.duration-1,b:x.c.building}));
         day.sort((a,b)=>a.s-b.s);
-        for(let i=0;i<day.length-1;i++) if(day[i].b!==day[i+1].b && day[i+1].s-day[i].e<2) return false;
+        for(let i=0;i<day.length-1;i++) if(day[i].b!==day[i+1].b){ if(day[i+1].s-day[i].e<2) return false; transitions++; }
       }
-      return true;
+      return transitions>0;
     }
     case "teacher_time":{ // okno / zakázané hodiny či dny pro učitele
       const fn=c=>c.teacher===P.teacher;
@@ -916,6 +925,12 @@ function checkSolvable(levelId, samples){ // konzolová zkratka — vrací Promi
 function restoreLifted(){ // vrátí zvednutou (zatím neumístěnou) kartičku na původní místo
   if(S.selected && S.pickedFrom) S.placements[S.selected]=S.pickedFrom;
   S.pickedFrom=null;
+}
+function dropSelection(){ // přepnutí záložky/pohledu ruší výběr — kartička nesmí padat „naslepo“ do rozvrhu, který není vidět
+  if(!S.selected) return;
+  const back=!!S.pickedFrom;
+  restoreLifted(); S.selected=null;
+  setStatus(back?"Výběr zrušen — kartička je zpět na svém místě.":"Výběr zrušen.");
 }
 function pickUp(id){
   if(S.locked.has(id)){ setStatus("Tahle kartička je zamčená — je daná levelem."); return; }
@@ -1170,12 +1185,16 @@ function renderTabs(){
   const views=[["class","Třídy"],["teacher","Učitelé"],["room","Učebny"]];
   views.forEach(([v,lbl])=>{
     box.append(el("button",{class:"tab view"+(v===S.view?" active":""),
-      onclick:()=>{ S.view=v; S.active=entitiesOf(v)[0]; render(); }},lbl));
+      onclick:()=>{ const a=entitiesOf(v)[0];
+        if(S.selected&&(v!=="class"||a!==card(S.selected).class)) dropSelection();
+        S.view=v; S.active=a; render(); }},lbl));
   });
   box.append(el("div",{class:"tabsep"}));
   // záložky entit v aktuální dimenzi
   entitiesOf(S.view).forEach(e=>{
-    box.append(el("button",{class:"tab"+(e===S.active?" active":""),onclick:()=>{S.active=e;render();}},e));
+    box.append(el("button",{class:"tab"+(e===S.active?" active":""),
+      onclick:()=>{ if(S.selected&&(S.view!=="class"||e!==card(S.selected).class)) dropSelection();
+        S.active=e; render(); }},e));
   });
   if(S.view!=="class") box.append(el("span",{class:"ro-note"},"jen pro čtení"));
 }
@@ -1230,10 +1249,11 @@ function renderSchedule(reasons){
 
     // POZADÍ: všechny buňky. V herním pohledu jsou to drop zóny.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
-      const droppable=playing && S.selected && fits(card(S.selected),p);
+      // pokládat jde jen do rozvrhu třídy, které kartička patří — jinak by padala „naslepo“ mimo obraz
+      const droppable=playing && S.selected && card(S.selected).class===S.active && fits(card(S.selected),p);
       const props={ class:"cell"+(droppable?" drop":""), "data-w":w,"data-d":d,"data-p":p,
         style:{gridColumn:horiz?p+1:d+2, gridRow:horiz?d+2:p+1} };
-      if(playing) props.onclick=()=>{ if(S.selected) tryPlace(S.selected,w,d,p); };
+      if(playing) props.onclick=()=>{ if(S.selected && card(S.selected).class===S.active) tryPlace(S.selected,w,d,p); };
       grid.append(el("div",props));
     }
 
@@ -1271,6 +1291,10 @@ function renderSchedule(reasons){
         props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
       }
       grid.append(el("div",props,
+        // vícehodinový blok: čárka na každé hranici hodiny + štítek délky (kolmo na osu hodin dle orientace)
+        Array.from({length:c.duration-1},(_,k)=>el("div",{class:"tick "+(horiz?"h":"v"),
+          style:horiz?{left:((k+1)/c.duration*100)+"%"}:{top:((k+1)/c.duration*100)+"%"}})),
+        c.duration>1?el("div",{class:"durb"},c.duration+"h"):null,
         playing&&!locked?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
         locked?el("div",{class:"lockb"},"🔒"):null,
         el("div",{class:"subj"},c.subject),
@@ -1501,7 +1525,7 @@ function aboutModal(){
   ov.append(el("div",{class:"modal"},
     el("h3",{},"O hře"),
     el("p",{},"BoarShed — skládání rozvrhu. In-joke pro kolegy z SPŠ. A pro všechny, kdo na rozvrhy nadávají: teď si ho zkus poskládat sám, chytráku."),
-    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 1) až ~0,6 % (finále „Celá škola“ se všemi 16 třídami). Celá hra je jeden HTML soubor bez závislostí."),
+    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 1), u pozdějších levelů jen v setinách až desetinách procenta (finále „Celá škola“ se všemi 16 třídami ~0,2 %). Celá hra je jeden HTML soubor bez závislostí."),
     REPO_URL?el("p",{},el("a",{href:REPO_URL,target:"_blank",rel:"noopener"},"Zdrojáky a celá historie vývoje")):null,
     el("p",{class:"muted",style:{fontSize:"12px"}},"Pro zvídavé: F12 → konzole → await checkSolvable(\"l6\"). Vlastní levely jde stavět v Editoru a posílat odkazem."),
     el("div",{class:"row"},el("button",{onclick:()=>ov.remove()},"Zavřít"))
@@ -1512,6 +1536,43 @@ function aboutModal(){
 /* =====================================================================
    LEVELY / TÉMA / INIT
    ===================================================================== */
+function goalDeadWithLocked(g){ // cíl, který zamčené kartičky znemožňují samy o sobě (doplněním dalších to nejde spravit)
+  const P=g.p||{};
+  const L=[]; S.locked.forEach(id=>{ const c=card(id), pl=S.placements[id]; if(c&&pl) L.push({c,pl}); });
+  const sub=x=>x.c.subject===P.subject && (!P.cls||x.c.class===P.cls);
+  switch(g.type){
+    case "subject_time": return L.some(x=>sub(x) && ((P.maxPeriod&&x.pl.p+x.c.duration-1>P.maxPeriod)
+      ||(P.minPeriod&&x.pl.p<P.minPeriod)||(P.exact&&x.pl.p!==P.exact)));
+    case "subject_day":  return L.some(x=>sub(x)&&x.pl.d!==P.day);
+    case "subject_week": return L.some(x=>sub(x)&&x.pl.w!==P.week);
+    case "teacher_only_week": return L.some(x=>x.c.teacher===P.teacher&&x.pl.w!==P.week);
+    case "teacher_time": return L.some(x=>{
+      if(x.c.teacher!==P.teacher) return false;
+      const s=x.pl.p, e=s+x.c.duration-1;
+      if(P.minPeriod&&s<P.minPeriod) return true;
+      if(P.maxPeriod&&e>P.maxPeriod) return true;
+      if(P.forbidDays&&P.forbidDays.includes(x.pl.d)) return true;
+      if(P.forbidPeriods){ for(let k=s;k<=e;k++) if(P.forbidPeriods.includes(k)) return true; }
+      return false;
+    });
+    case "max_per_day":{
+      const fn=P.teacher?(x=>x.c.teacher===P.teacher):(x=>x.c.class===P.cls&&!isBreak(x.c));
+      for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
+        let h=0; L.filter(fn).filter(x=>x.pl.w===w&&x.pl.d===d).forEach(x=>h+=x.c.duration);
+        if(h>P.max) return true;
+      }
+      return false;
+    }
+    case "lunch_break": return L.some(x=>{
+      if(x.c.class!==P.cls) return false;
+      for(let k=0;k<x.c.duration;k++) if(x.pl.p+k===P.period) return true;
+      return false;
+    });
+    case "teacher_free_day":
+      return new Set(L.filter(x=>x.c.teacher===P.teacher).map(x=>x.pl.d)).size>=DAYS.length;
+    default: return false; // all_placed, class_no_gaps, transition_gap — z pevného základu rozhodnout nejde
+  }
+}
 function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man přenos (carryFrom)
   const lvl=LVL; // hráč mohl během čekání na Store přepnout level
   S.locked=new Set();
@@ -1526,6 +1587,13 @@ function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man
         S.locked.forEach(id=>{ delete S.placements[id]; }); // přenos nahrazuje výchozí given
         S.locked=new Set();
         lockAll(pl);
+        const dead=LVL.goals.find(goalDeadWithLocked);
+        if(dead){ // přenesený rozvrh by level znemožnil → radši vzorový základ než neřešitelný level
+          S.locked.forEach(id=>{ delete S.placements[id]; });
+          S.locked=new Set();
+          lockAll(LVL.given||{});
+          setStatus("S rozvrhem přeneseným z minulého levelu by nešlo splnit „"+dead.label+"“ — zamčený základ je proto vzorové řešení.");
+        }
         render();
       }catch(e){}
     });
