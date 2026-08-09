@@ -14,7 +14,7 @@ Hráč přetahuje barevné kartičky (vyučované hodiny) do rozvrhu lichého a 
 učitel/učebna/třída, délka bloku) hlídá engine; měkké herní cíle (volný den učitele,
 zkrácený úvazek, předmět dopoledne…) se počítají do skóre.
 
-Stav: **hotová a nasazená hra** — kampaň 6 levelů s měřeným balancem, editor, sdílení,
+Stav: **hotová a nasazená hra** — kampaň 7 levelů s měřeným balancem, editor, sdílení,
 mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShed/**.
 Úplný kontext: [docs/handoff.md](docs/handoff.md).
 
@@ -38,6 +38,9 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
   tvrdých konfliktů (volitelně zkusí splnit i herní cíle); když se něco nevejde, hlásí
   který tvrdý požadavek to zablokoval. **Smazat** s potvrzením; **Řešitelnost?** ukáže
   v modálu, jak je level těžký (% výher a splnění jednotlivých cílů).
+- **Nařízená pauza** — každá třída má šrafovanou kartičku **Oběd**, kterou engine pustí
+  jen do 4.–5. hodiny (tvrdé pravidlo, ne cíl). Nemá učitele ani učebnu, takže celá škola
+  smí obědvat naráz, ale třídě zabírá slot.
 - **Iron-man**: level může stavět na pozici z předchozího levelu — přenesené kartičky
   jsou zamčené (🔒). Demo level 3 staví na tvém řešení levelu 2.
 - **Editor levelů** — vlastní levely jako JSON (šablona z existujícího levelu,
@@ -51,10 +54,10 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
   i bez účtu a po nasazení. **Sdílení pozice odkazem** (`#p=…`). Dokončené levely
   mají ✓ v přepínači.
 - Světlý/tmavý motiv (CSS proměnné), respektuje systémovou preferenci, volba se pamatuje.
-- **Kampaň 6 levelů** s měřenou rostoucí obtížností (výhra v ~11 % → ~0,4 % náhodných
-  platných rozvrhů): rozjezd → dvě třídy → dva týdny → tři třídy →
-  iron-man dostavba → finále **„Prase"**. Svět je inspirovaný skutečností:
-  4 obory (informatika s managementem, elektronické počítače, slaboproudá
+- **Kampaň 7 levelů** s měřenou rostoucí obtížností (výhra v ~10 % → ~0,6 % náhodných
+  platných rozvrhů): rozjezd → první ročníky → druhé → třetí → iron-man dostavba →
+  čtvrté ročníky → finále **„Celá škola"** se všemi 16 třídami. Svět je inspirovaný skutečností:
+  4 obory (Informatika a management, elektronické počítače, slaboproudá
   elektrotechnika, strojírenství), ročníky 1–4, tři budovy se skutečnými učebnami
   (Š101 → T, H59 → E/F/G, H618 → B/C) plus půjčené tělocvičny ZŠ; zástupné zůstávají
   jen předměty a křestní jména — později lze 1:1 vyměnit za podvýběr skutečných.

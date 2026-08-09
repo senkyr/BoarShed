@@ -87,6 +87,12 @@ try{
   .card .chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:99px;
     background:color-mix(in srgb,var(--f) 22%,var(--surface));border:1px solid color-mix(in srgb,var(--f) 35%,var(--surface))}
   .card.sel{outline:2px solid var(--accent);outline-offset:1px}
+  /* nařízená pauza (oběd) — šrafovaná, vizuálně mimo obory */
+  .card.brk,.pcard.brk{--f:var(--ink-soft);color:var(--ink-soft);
+    background-image:repeating-linear-gradient(135deg,transparent,transparent 4px,
+      color-mix(in srgb,var(--ink-soft) 22%,transparent) 4px,color-mix(in srgb,var(--ink-soft) 22%,transparent) 8px);
+    background-color:var(--surface-2);border-style:dashed}
+  .card.brk .subj,.pcard.brk .subj{font-weight:600;font-style:italic}
   .card.dur2::after,.card.dur3::after{content:attr(data-dur);position:absolute;top:4px;right:6px;
     font-size:10px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 4px}
   .palette-empty{font-size:13px;color:var(--ink-soft);padding:8px 2px}
@@ -229,10 +235,11 @@ const LEVELS=[
     cards:[
       {id:"a", class:"1.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
       {id:"b", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
-      {id:"c", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Hana", room:"T3", building:"Š101", duration:1},
+      {id:"c", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T3", building:"Š101", duration:1},
       {id:"d", class:"1.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T5", building:"Š101", duration:1},
       {id:"e", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"G7", building:"H59", duration:2},
       {id:"f", class:"1.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T12", building:"Š101", duration:1},
+      {id:"ob1", class:"1.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
@@ -243,83 +250,111 @@ const LEVELS=[
     ]
   },
   {
-    id:"l2", name:"2 · Dvě třídy",
-    desc:"1.IT a 1.EP se dělí o učitele i počítačové laby. 1.EP navíc dojíždí na Horskou.",
+    id:"l2", name:"2 · První ročníky",
+    desc:"Celý první ročník — čtyři obory naráz. Dělí se o Renatu, Tomáše i tělocvičnu na Horské.",
     weeks:["Lichý"], periods:6,
     cards:[
-      {id:"a", class:"1.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
-      {id:"b", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Hana", room:"T3", building:"Š101", duration:1},
-      {id:"c", class:"1.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T5", building:"Š101", duration:1},
-      {id:"d", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
-      {id:"e", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
-      {id:"f", class:"1.EP", subject:"Číslicová technika", field:"EP", teacher:"Karel", room:"G1", building:"H59", duration:2},
-      {id:"g", class:"1.EP", subject:"Matematika", field:"EP", teacher:"Hana", room:"T3", building:"Š101", duration:1},
-      {id:"h", class:"1.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
-      {id:"i", class:"1.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
-      {id:"j", class:"1.EP", subject:"Programování", field:"EP", teacher:"Petr", room:"T14", building:"Š101", duration:1},
+      {id:"c0", class:"1.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c2", class:"1.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
+      {id:"c3", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"c4", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"c5", class:"1.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:2},
+      {id:"c6", class:"1.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c7", class:"1.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"c8", class:"1.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c9", class:"1.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"ca", class:"1.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cb", class:"1.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"cc", class:"1.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
+      {id:"cd", class:"1.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"ce", class:"1.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"cf", class:"1.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cg", class:"1.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ch", class:"1.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ci", class:"1.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
       {id:"g2", type:"class_no_gaps", p:{"cls":"1.EP"}, label:"1.EP nemá v rozvrhu okno."},
       {id:"g3", type:"subject_time", p:{"subject":"Číslicová technika","maxPeriod":4}, label:"Číslicovka (blok) končí do 4. hodiny."},
       {id:"g4", type:"max_per_day", p:{"cls":"1.IT","max":2}, label:"1.IT má nejvýš 2 hodiny denně."},
-      {id:"g5", type:"teacher_time", p:{"teacher":"Tomáš","minPeriod":3}, label:"Tělocvična je ráno obsazená — tělocvik až od 3. hodiny."},
+      {id:"g5", type:"teacher_time", p:{"teacher":"Tomáš","minPeriod":2}, label:"Tělocvična je ráno obsazená — tělocvik není první hodinu."},
     ]
   },
   {
-    id:"l3", name:"3 · Dva týdny",
+    id:"l3", name:"3 · Druhé ročníky",
     desc:"Lichý a sudý týden. Tělocvik se stěhuje na půjčené tělocvičny ZŠ a Jan přebíhá mezi Horskou a Školní — hlídej přechody.",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
-      {id:"a", class:"2.EL", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
-      {id:"b", class:"2.EL", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
-      {id:"c", class:"2.EL", subject:"Matematika", field:"ELE", teacher:"Hana", room:"G4", building:"H59", duration:1},
-      {id:"d", class:"2.EL", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
-      {id:"e", class:"2.EL", subject:"Fyzika", field:"ELE", teacher:"Jan", room:"T9", building:"Š101", duration:1},
-      {id:"f", class:"2.EL", subject:"Angličtina", field:"ELE", teacher:"Jitka", room:"G4", building:"H59", duration:1},
-      {id:"g", class:"2.ST", subject:"CAD", field:"STR", teacher:"Lucie", room:"B26", building:"H618", duration:1},
-      {id:"h", class:"2.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
-      {id:"i", class:"2.ST", subject:"Matematika", field:"STR", teacher:"Hana", room:"B7", building:"H618", duration:1},
-      {id:"j", class:"2.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
-      {id:"k", class:"2.ST", subject:"Stavba strojů", field:"STR", teacher:"Martin", room:"C7", building:"H618", duration:1},
-      {id:"l", class:"2.ST", subject:"Technologie", field:"STR", teacher:"Martin", room:"C7", building:"H618", duration:1},
+      {id:"c0", class:"2.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1", class:"2.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c2", class:"2.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
+      {id:"c3", class:"2.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c4", class:"2.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c5", class:"2.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c6", class:"2.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c7", class:"2.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"c8", class:"2.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"c9", class:"2.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"ca", class:"2.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cb", class:"2.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"cc", class:"2.S", subject:"Fyzika", field:"ELE", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"cd", class:"2.S", subject:"Angličtina", field:"ELE", teacher:"Jitka", room:"G4", building:"H59", duration:1},
+      {id:"ce", class:"2.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:1},
+      {id:"cf", class:"2.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
+      {id:"cg", class:"2.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"ch", class:"2.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"ci", class:"2.ST", subject:"Stavba strojů", field:"STR", teacher:"Šárka", room:"C7", building:"H618", duration:1},
+      {id:"cj", class:"2.ST", subject:"Technologie", field:"STR", teacher:"Martin", room:"C7", building:"H618", duration:1},
+      {id:"ck", class:"2.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cl", class:"2.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cm", class:"2.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cn", class:"2.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
       {id:"g2", type:"teacher_transition_gap", p:{"teacher":"Jan"}, label:"Jan přebíhá mezi budovami — po přechodu volná hodina."},
       {id:"g3", type:"teacher_only_week", p:{"teacher":"Alena","week":1}, label:"Alena má zkrácený úvazek — učí jen v sudém týdnu."},
       {id:"g4", type:"subject_week", p:{"subject":"Praxe","cls":"2.ST","week":0}, label:"Praxe 2.ST padne do lichého týdne."},
-      {id:"g5", type:"class_no_gaps", p:{"cls":"2.EL"}, label:"2.EL nemá v rozvrhu okno."},
-      {id:"g6", type:"lunch_break", p:{"cls":"2.ST","period":4}, label:"2.ST má 4. hodinu volnou (oběd)."},
+      {id:"g5", type:"class_no_gaps", p:{"cls":"2.S"}, label:"2.S nemá v rozvrhu okno."},
+      {id:"g6", type:"class_no_gaps", p:{"cls":"2.ST"}, label:"2.ST nemá v rozvrhu okno."},
     ]
   },
   {
-    id:"l4", name:"4 · Tři třídy",
-    desc:"Tři třídy, tři budovy a tři půjčené tělocvičny. Hana učí matematiku na Školní i v Horské 618 — hlídej přechody.",
+    id:"l4", name:"4 · Třetí ročníky",
+    desc:"Celý třetí ročník ve třech budovách a třech půjčených tělocvičnách. Renata učí matematiku všude — hlídej přechody.",
     weeks:["Lichý"], periods:6,
     cards:[
-      {id:"a", class:"3.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
-      {id:"b", class:"3.IT", subject:"Management", field:"IT", teacher:"Marie", room:"T9", building:"Š101", duration:1},
-      {id:"c", class:"3.IT", subject:"Matematika", field:"IT", teacher:"Hana", room:"T5", building:"Š101", duration:1},
-      {id:"d", class:"3.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
-      {id:"e", class:"3.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
-      {id:"f", class:"3.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
-      {id:"g", class:"3.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
-      {id:"h", class:"3.EP", subject:"Matematika", field:"EP", teacher:"Hana", room:"T5", building:"Š101", duration:1},
-      {id:"i", class:"3.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
-      {id:"j", class:"3.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
-      {id:"k", class:"3.ST", subject:"CAD", field:"STR", teacher:"Lucie", room:"B26", building:"H618", duration:1},
-      {id:"l", class:"3.ST", subject:"Stavba strojů", field:"STR", teacher:"Lucie", room:"C7", building:"H618", duration:1},
-      {id:"m", class:"3.ST", subject:"Matematika", field:"STR", teacher:"Hana", room:"B7", building:"H618", duration:1},
-      {id:"n", class:"3.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"c0", class:"3.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1", class:"3.IT", subject:"Management", field:"IT", teacher:"Simona", room:"T9", building:"Š101", duration:1},
+      {id:"c2", class:"3.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c3", class:"3.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c4", class:"3.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"c5", class:"3.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c6", class:"3.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c7", class:"3.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c8", class:"3.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"c9", class:"3.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"ca", class:"3.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"cb", class:"3.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cc", class:"3.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"cd", class:"3.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"ce", class:"3.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:1},
+      {id:"cf", class:"3.ST", subject:"Stavba strojů", field:"STR", teacher:"Šárka", room:"C7", building:"H618", duration:1},
+      {id:"cg", class:"3.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"ch", class:"3.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"ci", class:"3.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cj", class:"3.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ck", class:"3.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cl", class:"3.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
-      {id:"g2", type:"teacher_transition_gap", p:{"teacher":"Hana"}, label:"Hana přebíhá mezi budovami — po přechodu volná hodina."},
-      {id:"g3", type:"teacher_time", p:{"teacher":"Hana","maxPeriod":4}, label:"Hana učí jen dopoledne (končí do 4. hodiny)."},
-      {id:"g4", type:"lunch_break", p:{"cls":"3.IT","period":4}, label:"3.IT má 4. hodinu volnou (oběd)."},
-      {id:"g5", type:"teacher_free_day", p:{"teacher":"Tomáš"}, label:"Tomáš má jeden den volno."},
-      {id:"g6", type:"subject_day", p:{"subject":"CNC","cls":"3.ST","day":0}, label:"CNC je v pondělí."},
+      {id:"g2", type:"teacher_transition_gap", p:{"teacher":"Renata"}, label:"Renata přebíhá mezi budovami — po přechodu volná hodina."},
+      {id:"g3", type:"class_no_gaps", p:{"cls":"3.IT"}, label:"3.IT nemá v rozvrhu okno."},
+      {id:"g4", type:"teacher_time", p:{"teacher":"Renata","maxPeriod":5}, label:"Renata má odpoledne schůzky — učí jen do 5. hodiny."},
+      {id:"g5", type:"subject_day", p:{"subject":"CNC","cls":"3.ST","day":0}, label:"CNC je v pondělí."},
     ]
   },
   {
@@ -328,76 +363,186 @@ const LEVELS=[
     weeks:["Lichý"], periods:6,
     carryFrom:"l4", // iron-man: autosave l4 nahradí výchozí given níž
     cards:[
-      {id:"a", class:"3.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
-      {id:"b", class:"3.IT", subject:"Management", field:"IT", teacher:"Marie", room:"T9", building:"Š101", duration:1},
-      {id:"c", class:"3.IT", subject:"Matematika", field:"IT", teacher:"Hana", room:"T5", building:"Š101", duration:1},
-      {id:"d", class:"3.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
-      {id:"e", class:"3.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
-      {id:"f", class:"3.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
-      {id:"g", class:"3.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
-      {id:"h", class:"3.EP", subject:"Matematika", field:"EP", teacher:"Hana", room:"T5", building:"Š101", duration:1},
-      {id:"i", class:"3.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
-      {id:"j", class:"3.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
-      {id:"k", class:"3.ST", subject:"CAD", field:"STR", teacher:"Lucie", room:"B26", building:"H618", duration:1},
-      {id:"l", class:"3.ST", subject:"Stavba strojů", field:"STR", teacher:"Lucie", room:"C7", building:"H618", duration:1},
-      {id:"m", class:"3.ST", subject:"Matematika", field:"STR", teacher:"Hana", room:"B7", building:"H618", duration:1},
-      {id:"n", class:"3.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
-      {id:"o", class:"3.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
-      {id:"p", class:"3.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T12", building:"Š101", duration:1},
-      {id:"q", class:"3.EP", subject:"Číslicová technika", field:"EP", teacher:"Karel", room:"G1", building:"H59", duration:2},
-      {id:"r", class:"3.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
-      {id:"s", class:"3.EP", subject:"Fyzika", field:"EP", teacher:"Hana", room:"T9", building:"Š101", duration:1},
-      {id:"t", class:"3.ST", subject:"Ekonomika", field:"STR", teacher:"Marie", room:"T9", building:"Š101", duration:1},
+      {id:"c0", class:"3.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1", class:"3.IT", subject:"Management", field:"IT", teacher:"Simona", room:"T9", building:"Š101", duration:1},
+      {id:"c2", class:"3.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c3", class:"3.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c4", class:"3.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"c5", class:"3.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c6", class:"3.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c7", class:"3.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c8", class:"3.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"c9", class:"3.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"ca", class:"3.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"cb", class:"3.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cc", class:"3.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"cd", class:"3.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"ce", class:"3.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:1},
+      {id:"cf", class:"3.ST", subject:"Stavba strojů", field:"STR", teacher:"Šárka", room:"C7", building:"H618", duration:1},
+      {id:"cg", class:"3.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"ch", class:"3.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"ci", class:"3.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cj", class:"3.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ck", class:"3.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cl", class:"3.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"cm", class:"3.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
+      {id:"cn", class:"3.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"co", class:"3.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:2},
+      {id:"cp", class:"3.EP", subject:"Fyzika", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"cq", class:"3.S", subject:"Angličtina", field:"ELE", teacher:"Jitka", room:"G4", building:"H59", duration:1},
+      {id:"cr", class:"3.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
+      {id:"cs", class:"3.ST", subject:"Ekonomika", field:"STR", teacher:"Simona", room:"T9", building:"Š101", duration:1},
     ],
-    given:{ // vzorové řešení L4 (nalezené a ověřené simulací; použije se bez rozehraného L4)
-      j:{w:0,d:0,p:5}, f:{w:0,d:3,p:2}, a:{w:0,d:1,p:5}, i:{w:0,d:3,p:1}, k:{w:0,d:0,p:1},
-      c:{w:0,d:2,p:3}, e:{w:0,d:3,p:1}, l:{w:0,d:3,p:4}, h:{w:0,d:4,p:1}, g:{w:0,d:2,p:6},
-      n:{w:0,d:0,p:3}, d:{w:0,d:3,p:2}, m:{w:0,d:2,p:2}, b:{w:0,d:0,p:6},
+    given:{ // vzorové řešení L4 — vyhrává l4 i l5 (nalezeno a ověřeno enginem)
+      c0:{w:0,d:2,p:4}, c1:{w:0,d:0,p:2}, c2:{w:0,d:3,p:4}, c3:{w:0,d:0,p:1}, c4:{w:0,d:1,p:1},
+      c5:{w:0,d:2,p:5}, c6:{w:0,d:0,p:6}, c7:{w:0,d:1,p:1}, c8:{w:0,d:3,p:1}, c9:{w:0,d:3,p:4},
+      ca:{w:0,d:4,p:2}, cb:{w:0,d:3,p:1}, cc:{w:0,d:0,p:2}, cd:{w:0,d:0,p:4}, ce:{w:0,d:2,p:4},
+      cf:{w:0,d:4,p:1}, cg:{w:0,d:2,p:5}, ch:{w:0,d:3,p:6}, ci:{w:0,d:3,p:5}, cj:{w:0,d:0,p:4},
+      ck:{w:0,d:2,p:5}, cl:{w:0,d:1,p:5},
     },
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
       {id:"g2", type:"subject_day", p:{"subject":"Praxe","cls":"3.ST","day":4}, label:"Praxe 3.ST je v pátek."},
-      {id:"g3", type:"teacher_time", p:{"teacher":"Karel","maxPeriod":4}, label:"Karel učí jen dopoledne (končí do 4. hodiny)."},
+      {id:"g3", type:"teacher_time", p:{"teacher":"Jaroslav","maxPeriod":4}, label:"Jaroslav učí jen dopoledne (končí do 4. hodiny)."},
       {id:"g4", type:"max_per_day", p:{"cls":"3.IT","max":2}, label:"3.IT má nejvýš 2 hodiny denně."},
-      {id:"g5", type:"lunch_break", p:{"cls":"3.EP","period":4}, label:"3.EP má 4. hodinu volnou (oběd)."},
+      {id:"g5", type:"max_per_day", p:{"cls":"3.EP","max":3}, label:"3.EP má nejvýš 3 hodiny denně."},
       {id:"g6", type:"subject_time", p:{"subject":"Ekonomika","cls":"3.ST","minPeriod":2}, label:"Ekonomika není první hodinu."},
     ]
   },
   {
-    id:"l6", name:"6 · Prase (finále)",
+    id:"l6", name:"6 · Čtvrté ročníky",
     desc:"Čtyři obory, tři budovy, půjčené tělocvičny, dva týdny a požadavky, které vypadají neřešitelně. (Nejsou. Asi.)",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
       {id:"a", class:"4.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
-      {id:"b", class:"4.IT", subject:"Management", field:"IT", teacher:"Marie", room:"T9", building:"Š101", duration:1},
-      {id:"c", class:"4.IT", subject:"Matematika", field:"IT", teacher:"Hana", room:"T5", building:"Š101", duration:1},
+      {id:"b", class:"4.IT", subject:"Management", field:"IT", teacher:"Simona", room:"T9", building:"Š101", duration:1},
+      {id:"c", class:"4.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
       {id:"d", class:"4.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:2},
       {id:"e", class:"4.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
       {id:"f", class:"4.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
-      {id:"g", class:"4.EP", subject:"Číslicová technika", field:"EP", teacher:"Karel", room:"G1", building:"H59", duration:1},
+      {id:"g", class:"4.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:1},
       {id:"h", class:"4.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
-      {id:"i", class:"4.EP", subject:"Matematika", field:"EP", teacher:"Hana", room:"T5", building:"Š101", duration:1},
+      {id:"i", class:"4.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
       {id:"j", class:"4.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
-      {id:"k", class:"4.EL", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
-      {id:"l", class:"4.EL", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
-      {id:"m", class:"4.EL", subject:"Matematika", field:"ELE", teacher:"Hana", room:"G4", building:"H59", duration:1},
-      {id:"n", class:"4.EL", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
-      {id:"o", class:"4.EL", subject:"Fyzika", field:"ELE", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"k", class:"4.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"l", class:"4.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"m", class:"4.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"n", class:"4.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"o", class:"4.S", subject:"Fyzika", field:"ELE", teacher:"Jan", room:"T9", building:"Š101", duration:1},
       {id:"p", class:"4.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
-      {id:"q", class:"4.ST", subject:"CAD", field:"STR", teacher:"Lucie", room:"B26", building:"H618", duration:2},
-      {id:"r", class:"4.ST", subject:"Stavba strojů", field:"STR", teacher:"Lucie", room:"C7", building:"H618", duration:1},
-      {id:"s", class:"4.ST", subject:"Matematika", field:"STR", teacher:"Hana", room:"B7", building:"H618", duration:1},
+      {id:"q", class:"4.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:2},
+      {id:"r", class:"4.ST", subject:"Stavba strojů", field:"STR", teacher:"Šárka", room:"C7", building:"H618", duration:1},
+      {id:"s", class:"4.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
       {id:"t", class:"4.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"ob1", class:"4.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ob2", class:"4.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ob3", class:"4.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"ob4", class:"4.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
     goals:[
       {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
       {id:"g2", type:"teacher_transition_gap", p:{"teacher":"Jan"}, label:"Jan přebíhá mezi budovami — po přechodu volná hodina."},
       {id:"g3", type:"teacher_only_week", p:{"teacher":"Alena","week":1}, label:"Alena učí jen v sudém týdnu."},
-      {id:"g4", type:"teacher_free_day", p:{"teacher":"Hana"}, label:"Hana má jeden den volno."},
-      {id:"g5", type:"lunch_break", p:{"cls":"4.IT","period":4}, label:"4.IT má 4. hodinu volnou (oběd)."},
+      {id:"g4", type:"subject_time", p:{"subject":"Oběd","cls":"4.S","exact":4}, label:"Oběd 4.S padne přesně na 4. hodinu."},
+      {id:"g5", type:"class_no_gaps", p:{"cls":"4.IT"}, label:"4.IT nemá v rozvrhu okno."},
       {id:"g6", type:"max_per_day", p:{"cls":"4.ST","max":3}, label:"4.ST má nejvýš 3 hodiny denně."},
       {id:"g7", type:"teacher_time", p:{"teacher":"Tomáš","minPeriod":3}, label:"Tělocvik není v prvních dvou hodinách."},
       {id:"g8", type:"subject_week", p:{"subject":"CNC","cls":"4.ST","week":0}, label:"CNC padne do lichého týdne."},
+    ]
+  },
+  {
+    id:"l7", name:"7 · Celá škola",
+    desc:"Šestnáct tříd, čtyři obory, všechny ročníky. Požadavků je míň než v Praseti — zato se musí sejít celá škola najednou.",
+    weeks:["Lichý","Sudý"], periods:6,
+    cards:[
+      {id:"c0", class:"1.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"c2", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c3", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c4", class:"1.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c5", class:"1.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c6", class:"1.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c7", class:"1.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c8", class:"1.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"c9", class:"1.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"ca", class:"1.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cb", class:"1.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"cc", class:"1.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"cd", class:"1.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:2},
+      {id:"ce", class:"1.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"cf", class:"1.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"cg", class:"2.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"ch", class:"2.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
+      {id:"ci", class:"2.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"cj", class:"2.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"ck", class:"2.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"cl", class:"2.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:1},
+      {id:"cm", class:"2.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"cn", class:"2.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"co", class:"2.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"cp", class:"2.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"cq", class:"2.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"cr", class:"2.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"cs", class:"2.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"ct", class:"2.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
+      {id:"cu", class:"2.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"cv", class:"2.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 2", building:"Externí", duration:1},
+      {id:"cw", class:"3.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"cx", class:"3.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
+      {id:"cy", class:"3.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"cz", class:"3.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"c10", class:"3.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c11", class:"3.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
+      {id:"c12", class:"3.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c13", class:"3.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"c14", class:"3.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"c15", class:"3.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"c16", class:"3.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"c17", class:"3.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"c18", class:"3.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"c19", class:"3.ST", subject:"CAD", field:"STR", teacher:"Šárka", room:"B26", building:"H618", duration:2},
+      {id:"c1a", class:"3.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"c1b", class:"3.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 3", building:"Externí", duration:1},
+      {id:"c1c", class:"4.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
+      {id:"c1d", class:"4.IT", subject:"Management", field:"IT", teacher:"Simona", room:"T9", building:"Š101", duration:1},
+      {id:"c1e", class:"4.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c1f", class:"4.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c1g", class:"4.EP", subject:"Mikroprocesory", field:"EP", teacher:"Ondřej", room:"F5", building:"H59", duration:2},
+      {id:"c1h", class:"4.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:1},
+      {id:"c1i", class:"4.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
+      {id:"c1j", class:"4.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c1k", class:"4.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
+      {id:"c1l", class:"4.S", subject:"Měření", field:"ELE", teacher:"Alena", room:"F3", building:"H59", duration:2},
+      {id:"c1m", class:"4.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
+      {id:"c1n", class:"4.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c1o", class:"4.ST", subject:"CNC", field:"STR", teacher:"Martin", room:"C25", building:"H618", duration:2},
+      {id:"c1p", class:"4.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
+      {id:"c1q", class:"4.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
+      {id:"c1r", class:"4.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"ZŠ 1", building:"Externí", duration:1},
+      {id:"c1s", class:"1.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1t", class:"1.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1u", class:"1.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1v", class:"1.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1w", class:"2.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1x", class:"2.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1y", class:"2.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c1z", class:"2.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c20", class:"3.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c21", class:"3.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c22", class:"3.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c23", class:"3.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c24", class:"4.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c25", class:"4.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c26", class:"4.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+      {id:"c27", class:"4.ST", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
+    ],
+    goals:[
+      {id:"g1", type:"all_placed", label:"Všechny hodiny jsou umístěné."},
+      {id:"g2", type:"teacher_transition_gap", p:{"teacher":"Jan"}, label:"Jan přebíhá mezi budovami — po přechodu volná hodina."},
+      {id:"g3", type:"max_per_day", p:{"teacher":"Renata","max":3}, label:"Renata učí nejvýš 3 hodiny denně."},
+      {id:"g4", type:"class_no_gaps", p:{"cls":"4.ST"}, label:"4.ST nemá v rozvrhu okno."},
+      {id:"g5", type:"subject_week", p:{"subject":"CNC","cls":"1.ST","week":0}, label:"CNC prvního ročníku padne do lichého týdne."},
+      {id:"g6", type:"teacher_only_week", p:{"teacher":"Alena","week":1}, label:"Alena má zkrácený úvazek — učí jen v sudém týdnu."},
     ]
   },
 ];
@@ -445,12 +590,19 @@ let LVL=LEVELS[0];
 const S={ placements:{}, selected:null, view:"class", active:null, pickedFrom:null, locked:new Set(), assisted:false };
 
 function card(id){ return LVL.cards.find(c=>c.id===id); }
+// Oběd = kartička s kind:"break" — nařízená pauza, ne vyučovaná hodina.
+// Nemá skutečného učitele ani učebnu, takže se u ní NEHLÍDÁ konflikt učitele
+// a učebny (celá škola smí obědvat naráz); konflikt třídy platí normálně.
+// Umístit ji lze jen do obědového okna — tvrdé pravidlo ve `fits`.
+function isBreak(c){ return !!c && c.kind==="break"; }
+function breakWindow(){ return LVL.breakWindow || [4,5]; }
+function teaching(){ return LVL.cards.filter(c=>!isBreak(c)); }
 function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
-function teachersOf(){ return [...new Set(LVL.cards.map(c=>c.teacher))]; }
-function roomsOf(){ return [...new Set(LVL.cards.map(c=>c.room))]; }
+function teachersOf(){ return [...new Set(teaching().map(c=>c.teacher))]; }
+function roomsOf(){ return [...new Set(teaching().map(c=>c.room))]; }
 function entitiesOf(view){ return view==="teacher"?teachersOf():view==="room"?roomsOf():classesOf(); }
 function entityOf(c,view){ return view==="teacher"?c.teacher:view==="room"?c.room:c.class; }
-// Obory: IT = informatika s managementem, EP = elektronické počítače,
+// Obory: IT = Informatika a management, EP = elektronické počítače,
 // ELE = slaboproudá elektrotechnika, STR = strojírenství.
 const FIELD_NAMES={IT:"Informatika",EP:"Počítače",ELE:"Elektro",STR:"Strojírenství"};
 function fieldVar(f){ return f==="ELE"?"var(--ele)":f==="STR"?"var(--str)":f==="IT"?"var(--it)":f==="EP"?"var(--ep)":"var(--gen)"; }
@@ -463,7 +615,11 @@ function cells(id, pl){ // seznam {w,d,p} obsazených buněk
   for(let k=0;k<c.duration;k++) out.push({w:pl.w,d:pl.d,p:pl.p+k});
   return out;
 }
-function fits(c, p){ return p>=1 && p+c.duration-1<=LVL.periods; }
+function fits(c, p){
+  if(p<1 || p+c.duration-1>LVL.periods) return false;
+  if(isBreak(c)){ const [a,b]=breakWindow(); return p>=a && p+c.duration-1<=b; } // nařízená pauza jen v obědovém okně
+  return true;
+}
 
 function computeConflicts(){
   const occ={}, reasons={};
@@ -472,15 +628,15 @@ function computeConflicts(){
     const c=card(id);
     for(const cell of cells(id,S.placements[id])){
       const key=cell.w+"|"+cell.d+"|"+cell.p;
-      (occ[key]=occ[key]||[]).push({id,t:c.teacher,r:c.room,cl:c.class});
+      (occ[key]=occ[key]||[]).push({id,t:c.teacher,r:c.room,cl:c.class,brk:isBreak(c)});
     }
   }
   for(const key in occ){
     const l=occ[key]; if(l.length<2) continue;
     for(let i=0;i<l.length;i++)for(let j=i+1;j<l.length;j++){
-      const a=l[i],b=l[j];
-      if(a.t===b.t){add(a.id,a.t+" učí zároveň "+b.cl);add(b.id,b.t+" učí zároveň "+a.cl);}
-      if(a.r===b.r){add(a.id,"učebna "+a.r+" je obsazená ("+b.cl+")");add(b.id,"učebna "+b.r+" je obsazená ("+a.cl+")");}
+      const a=l[i],b=l[j], pair=!a.brk&&!b.brk; // pauza nemá učitele ani učebnu → jen konflikt třídy
+      if(pair&&a.t===b.t){add(a.id,a.t+" učí zároveň "+b.cl);add(b.id,b.t+" učí zároveň "+a.cl);}
+      if(pair&&a.r===b.r){add(a.id,"učebna "+a.r+" je obsazená ("+b.cl+")");add(b.id,"učebna "+b.r+" je obsazená ("+a.cl+")");}
       if(a.cl===b.cl){add(a.id,a.cl+" má dvě hodiny naráz");add(b.id,b.cl+" má dvě hodiny naráz");}
     }
   }
@@ -494,7 +650,8 @@ function hasHardConflict(id, pl, placements){ // pro řešič: konflikt mezi `id
       const oc=card(oid);
       for(const ocell of cells(oid,placements[oid])){
         if(ocell.w===cell.w && ocell.d===cell.d && ocell.p===cell.p){
-          if(oc.teacher===c.teacher||oc.room===c.room||oc.class===c.class) return true;
+          const pair=!isBreak(c)&&!isBreak(oc); // u pauzy se učitel ani učebna neposuzují
+          if((pair&&(oc.teacher===c.teacher||oc.room===c.room))||oc.class===c.class) return true;
         }
       }
     }
@@ -580,8 +737,8 @@ function evalGoal(g){
       if(!allPlaced(fn)) return false;
       return LVL.cards.filter(fn).every(c=>S.placements[c.id].w===P.week);
     }
-    case "max_per_day":{ // třída NEBO učitel nemá víc než P.max hodin v žádném dni
-      const fn = P.teacher ? (c=>c.teacher===P.teacher) : (c=>c.class===P.cls);
+    case "max_per_day":{ // třída NEBO učitel nemá víc než P.max hodin v žádném dni (oběd se nepočítá — není to výuka)
+      const fn = P.teacher ? (c=>c.teacher===P.teacher) : (c=>c.class===P.cls && !isBreak(c));
       if(!allPlaced(fn)) return false;
       for(let w=0;w<LVL.weeks.length;w++)for(let d=0;d<DAYS.length;d++){
         let h=0; placedCardsFor(fn).filter(x=>x.pl.w===w&&x.pl.d===d).forEach(x=>h+=x.c.duration);
@@ -651,8 +808,9 @@ function blockNote(pl){ // proč se zbylé kartičky nevešly (dominantní tvrd�
         const oc=card(oid);
         for(const ocell of cells(oid,pl[oid]))
           if(ocell.w===cell.w&&ocell.d===cell.d&&ocell.p===cell.p){
-            if(oc.teacher===c.teacher)ct=true;
-            if(oc.room===c.room)cr=true;
+            const pair=!isBreak(c)&&!isBreak(oc);
+            if(pair&&oc.teacher===c.teacher)ct=true;
+            if(pair&&oc.room===c.room)cr=true;
             if(oc.class===c.class)cc=true;
           }
       }
@@ -773,7 +931,9 @@ function tryPlace(id,w,d,p){
   if(S.locked.has(id)) return;
   const c=card(id);
   if(!c) return; // karta neexistuje (např. přepnutí levelu druhým prstem během tažení)
-  if(!fits(c,p)){ setStatus("Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
+  if(!fits(c,p)){ setStatus(isBreak(c)
+    ? "Oběd je nařízená pauza — smí být jen "+breakWindow()[0]+".–"+breakWindow()[1]+". hodinu."
+    : "Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
   // vrácení kartičky na totéž místo není krok historie
   if(!(S.selected===id && S.pickedFrom && S.pickedFrom.w===w && S.pickedFrom.d===d && S.pickedFrom.p===p)) pushHist();
   S.placements[id]={w,d,p};
@@ -981,7 +1141,7 @@ function renderPalette(){
   if(!unplaced.length){ box.append(el("div",{class:"palette-empty"},"Všechny kartičky jsou v rozvrhu.")); return; }
   unplaced.forEach(c=>{
     const d=el("div",{
-      class:"card dur"+c.duration+(S.selected===c.id?" sel":"")
+      class:"card dur"+c.duration+(isBreak(c)?" brk":"")+(S.selected===c.id?" sel":"")
         +(DRAG.dragging&&S.selected===c.id?" drag-src":""),
       "data-dur":c.duration+"h",
       style:{"--f":fieldVar(c.field)},
@@ -989,12 +1149,16 @@ function renderPalette(){
       onpointerdown:ev=>armDrag(ev,c.id,null)
     },
       el("div",{class:"subj"},c.subject),
-      el("div",{class:"meta"},
-        el("span",{class:"chip"},c.class),
-        el("span",{},c.teacher),
-        el("span",{},c.room),
-        el("span",{class:"chip"},c.building)
-      )
+      isBreak(c)
+        ? el("div",{class:"meta"},
+            el("span",{class:"chip"},c.class),
+            el("span",{},"nařízená pauza — "+breakWindow()[0]+".–"+breakWindow()[1]+". hodina"))
+        : el("div",{class:"meta"},
+            el("span",{class:"chip"},c.class),
+            el("span",{},c.teacher),
+            el("span",{},c.room),
+            el("span",{class:"chip"},c.building)
+          )
     );
     box.append(d);
   });
@@ -1087,13 +1251,15 @@ function renderSchedule(reasons){
         if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
       }
       // sekundární popisek nezobrazuje to, podle čeho je pohled filtrovaný
-      const sub = S.view==="teacher" ? c.class+" · "+c.room
-                : S.view==="room"    ? c.class+" · "+c.teacher
+      const sub = isBreak(c)          ? "nařízená pauza"
+                : S.view==="teacher"  ? c.class+" · "+c.room
+                : S.view==="room"     ? c.class+" · "+c.teacher
                 : c.teacher+" · "+c.room;
       const locked=S.locked.has(x.id);
       const props={
-        class:"pcard"+(conf?" conflict":"")+(playing?"":" ro")+(locked?" locked":""), style:st,
-        title:conf?[...conf].join(" · "):c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
+        class:"pcard"+(isBreak(c)?" brk":"")+(conf?" conflict":"")+(playing?"":" ro")+(locked?" locked":""), style:st,
+        title:conf?[...conf].join(" · "):isBreak(c)?c.subject+" · "+c.class+" — nařízená pauza"
+                                                  :c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
       };
       if(playing&&!locked){
         props.onclick=ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); };
@@ -1109,7 +1275,7 @@ function renderSchedule(reasons){
         locked?el("div",{class:"lockb"},"🔒"):null,
         el("div",{class:"subj"},c.subject),
         el("div",{class:"sub"},sub),
-        el("div",{class:"sub"},c.building)
+        isBreak(c)?null:el("div",{class:"sub"},c.building)
       ));
     });
     wrap.append(grid); box.append(wrap);
@@ -1147,7 +1313,7 @@ function renderGoals(reasons){
 
   // legenda jen pro obory, které v levelu opravdu jsou
   box.append(el("div",{class:"legend"},
-    [...new Set(LVL.cards.map(c=>c.field))].map(f=>
+    [...new Set(teaching().map(c=>c.field))].map(f=>
       el("span",{},el("span",{class:"sw",style:{background:fieldVar(f)}}),FIELD_NAMES[f]||f))
   ));
 }
@@ -1335,7 +1501,7 @@ function aboutModal(){
   ov.append(el("div",{class:"modal"},
     el("h3",{},"O hře"),
     el("p",{},"BoarShed — skládání rozvrhu. In-joke pro kolegy z SPŠ. A pro všechny, kdo na rozvrhy nadávají: teď si ho zkus poskládat sám, chytráku."),
-    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 1) až ~0,4 % (finále). Celá hra je jeden HTML soubor bez závislostí."),
+    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 1) až ~0,6 % (finále „Celá škola“ se všemi 16 třídami). Celá hra je jeden HTML soubor bez závislostí."),
     REPO_URL?el("p",{},el("a",{href:REPO_URL,target:"_blank",rel:"noopener"},"Zdrojáky a celá historie vývoje")):null,
     el("p",{class:"muted",style:{fontSize:"12px"}},"Pro zvídavé: F12 → konzole → await checkSolvable(\"l6\"). Vlastní levely jde stavět v Editoru a posílat odkazem."),
     el("div",{class:"row"},el("button",{onclick:()=>ov.remove()},"Zavřít"))
@@ -1420,7 +1586,9 @@ function validateLevel(o){
     o.cards.forEach((c,i)=>{
       ["id","class","subject","teacher","room","building"].forEach(k=>{ if(!c||!c[k]) errs.push("cards["+i+"]: chybí "+k+"."); });
       if(c&&c.id){ if(ids.has(c.id)) errs.push("cards["+i+"]: duplicitní id „"+c.id+"“."); ids.add(c.id); }
-      if(c&&!["IT","EP","ELE","STR"].includes(c.field)) errs.push("cards["+i+"]: field musí být IT | EP | ELE | STR.");
+      if(c&&!["IT","EP","ELE","STR","BRK"].includes(c.field)) errs.push("cards["+i+"]: field musí být IT | EP | ELE | STR | BRK (pauza).");
+      if(c&&c.kind&&c.kind!=="break") errs.push("cards["+i+"]: kind smí být jen \"break\".");
+      if(c&&c.field==="BRK"&&!isBreak(c)) errs.push("cards["+i+"]: field BRK patří jen kartičce s kind:\"break\".");
       if(c&&(!Number.isInteger(c.duration)||c.duration<1||c.duration>3)) errs.push("cards["+i+"]: duration musí být 1–3.");
     });
     const rb={}; // učebna musí mít všude stejnou budovu

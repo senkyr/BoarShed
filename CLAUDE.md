@@ -27,14 +27,30 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **DATA — LEVELY**: pole `LEVELS`. Level = `{id, name, desc, weeks, periods, cards[], goals[]}`
   + volitelně `given` (zamčené výchozí pozice `{cardId:{w,d,p}}`), `carryFrom` (iron-man:
   id levelu, jehož autosave nahradí `given` jako zamčený základ) a `custom` (level z editoru).
-  - karta: `{id, class, subject, field(IT|EP|ELE|STR), teacher, room, building, duration}`
+  - karta: `{id, class, subject, field(IT|EP|ELE|STR|BRK), teacher, room, building, duration}`
+    + volitelně `kind:"break"` (nařízená pauza — viz níž)
   - placement: `{w: weekIndex, d: dayIndex 0–4, p: startPeriod 1-based}`
   - `field` řídí barvu kartičky (`FIELD_NAMES`, legenda se staví z oborů v levelu);
     `duration` = výška bloku (počet hodin).
+  - **NAŘÍZENÁ PAUZA (oběd)** — `kind:"break"`, `field:"BRK"`, `subject:"Oběd"`, jedna
+    kartička na třídu. Chová se jinak než výuka a je to zapečené v enginu, ne v datech:
+    - **jen v obědovém okně** — `fits()` ji pustí pouze do `LVL.breakWindow` (výchozí
+      `[4,5]`). Je to tvrdé pravidlo jako přesah bloku mimo den, **ne herní cíl** —
+      záměrně: jako cíl by u l7 se 16 třídami srazilo šanci náhodného rozvrhu na ~10⁻⁸
+      a level by se nedal ověřit vzorkováním.
+    - **nemá učitele ani učebnu** (`teacher:"—"`, `room`/`building` = `Jídelna`), takže
+      `computeConflicts` i `hasHardConflict` u ní přeskakují konflikt učitele a učebny —
+      celá škola smí obědvat naráz. Konflikt třídy platí normálně: pauza zabírá slot.
+    - **nepočítá se do výuky** v `max_per_day` (u třídy), ale **počítá se** do
+      `class_no_gaps` (oběd vyplňuje mezeru — tak to má být) a nefiguruje v pohledech
+      za učitele a učebnu (`teaching()` ji vyfiltruje) ani v legendě.
+    - Cíl `lunch_break` (třída má hodinu volnou) tím **ztratil v kampani smysl** — s pauzou
+      v rozvrhu by si protiřečily. Typ v enginu zůstává kvůli vlastním levelům.
 - **SVĚT KAMPANĚ** (učebny a jejich zaměření skutečné; předměty a jména zástupná —
   lze 1:1 přejmenovat):
-  - obory: `IT` informatika s mng., `EP` elektronické počítače, `ELE` slaboproud,
-    `STR` strojírenství; třídy `<ročník>.<IT|EP|EL|ST>` (field dle oboru třídy).
+  - obory: `IT` Informatika a management, `EP` elektronické počítače, `ELE` slaboproud,
+    `STR` strojírenství; třídy `<ročník>.<IT|EP|S|ST>` (field dle oboru třídy —
+    **zkratka třídy ≠ `field`**: třída `2.S` má `field:"ELE"`, třída `3.ST` má `field:"STR"`).
   - **budovy = zaměření** (učebna má VŽDY jednu budovu — hlídá `validateLevel`):
     - `Š101` **T3, T5** kmenové · **T9** odborná (Fyzika, Hardware, Management, Ekonomika)
       · **T12, T14** počítačové laby — informatické předměty a teorie (kódy T1–T17).
@@ -48,14 +64,36 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
       Fyzika) se učí na všech budovách** — obvykle tam, kde třída sedí. Právě tím vznikají
       přechody mezi budovami, na kterých stojí cíl `teacher_transition_gap`.
     - **Tělocvik je páka na obtížnost:** vlastní tělocvična G7/H59 u snadných levelů
-      (l1, l2), externí ZŠ 1–3 u těžkých (l3–l6). Tomáš je jediný tělocvikář, takže
+      (l1, l2), externí ZŠ 1–3 u těžkých (l3–l7). Tomáš je jediný tělocvikář, takže
       učebna tělocviku sama o sobě nic neváže — tvrdý blok drží už učitel.
-  - učitelé: Petr+Eva (IT), Karel+Ondřej (EP), Jan (EP/EL, přebíhá Š101↔H59),
-    Alena (EL, zkrácený úvazek), Lucie+Martin (ST), Hana (mat, učí na všech budovách
-    → přebíhá), Jitka (jazyky), Tomáš (tělocvik), Marie (management/ekonomika).
-  - kampaň l1–l6, měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 4 000 vzorků):
-    l1 ≈ 10,8 % · l2 ≈ 3,1 % · l3 ≈ 2,8 % · l4 ≈ 0,9 % · l5 (iron-man, záměrný oddech)
-    ≈ 2,5 % · l6 „Prase" ≈ 0,4 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
+  - učitelé: Petr+Eva (IT), Jaroslav+Ondřej (EP), Jan (EP/EL, přebíhá Š101↔H59),
+    Alena (EL, zkrácený úvazek), Šárka+Martin (ST), Renata (mat, učí na všech budovách
+    → přebíhá), Jitka (jazyky), Tomáš (tělocvik), Simona (management/ekonomika).
+  - **ZÁSOBÁRNA JMEN** (whitelist od Jakuba, 9. 8. 2026 — jiná křestní jména do hry
+    nepatří; 38 unikátů / 61 míst, odpovídá reálné distribuci). Číslo = kolikrát jméno
+    v předloze je, tedy kolik různých učitelů může nést; nad rámec toho lze týž základ
+    odlišit **familiarizací** (Jan → Honza → Jenda), takže strop unikátních jmen ve hře
+    je 61, ne 38. V kampani je zatím obsazeno 12 (níž **tučně**).
+    - 6× **Jan**, **Martin** · 4× **Jaroslav** · 3× **Petr** · 2× **Eva**, **Tomáš**,
+      Josef, Pavel, Jakub, Václav, Ladislav, Marek
+    - 1× **Alena**, **Jitka**, **Ondřej**, **Renata**, **Simona**, **Šárka**, Arnošt,
+      Bronislav, Dan, Horst, Iva, Kateřina, Lenka, Luboš, Luděk, Martina, Max, Milan,
+      Miloš, Nikola, Oldřich, Petra, Radana, Vladimír, Vladislav, Zdeňka
+    - Při výběru drž **rozlišitelnost na kartičce**: vedle sebe nedávej Martin/Martina
+      ani Petr/Petra a hlídej podobné tvary (Alena/Lenka).
+  - **kampaň l1–l7 postupuje po ročnících:** l1 rozjezd (1.IT) · l2 první ročníky ·
+    l3 druhé · l4 třetí · l5 iron-man nad l4 · l6 čtvrté ročníky · l7 „Celá škola"
+    (**všech 16 tříd** = 4 obory × 4 ročníky, 80 kartiček).
+  - měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 20 000 vzorků):
+    l1 ≈ 10,3 % · l2 ≈ 4,5 % · l3 ≈ 2,6 % · l4 ≈ 1,2 % · l5 (záměrný oddech) ≈ 3,1 % ·
+    l6 ≈ 0,9 % · l7 ≈ 0,6 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
+    **Měř na ≥ 20 000 vzorcích** — na 4 000 kolísá odhad u l1 o ±1,5 p. b., což stačí
+    na falešný dojem, že se obtížnost posunula.
+  - **Pozor, co ta metrika je:** podíl výher mezi *náhodnými* rozvrhy. Mezi levely různé
+    velikosti není srovnatelná — l7 má stejný řád jako l6, ale 80 kartiček proti 24,
+    takže pro člověka je řádově těžší. A cíl, který se člověku plní snadno (Alena jen
+    v sudém týdnu), srazí metriku víc než cíl vyžadující koordinaci. Číslo ber jako
+    kontrolu „je to vůbec vyhratelné", ne jako míru zážitku.
 - **ÚLOŽIŠTĚ**: adaptér `Store` s feature-detekcí `window.storage` → `localStorage` → null.
   Páteř ukládání je serializační řetězec Base64(JSON), funguje vždy. Import (modál,
   autosave i URL hash `#p=<řetězec>`) validuje placementy přes `validPlacement()`
@@ -193,7 +231,7 @@ vlastní levely ve Store, sdílení levelů odkazem `#l=`), **chytřejší řeš
 (heuristika delších bloků, volitelné plnění měkkých cílů, hlášení co zablokovalo
 doplnění), **fér ✓** (výhra řešičem/importem nedává odznak) a **modál ⓘ O hře**.
 
-Obsah je hotový „naslepo": kampaň 6 levelů (l1–l6, viz SVĚT KAMPANĚ výš), obtížnost
+Obsah je hotový „naslepo": kampaň 7 levelů (l1–l7, viz SVĚT KAMPANĚ výš), obtížnost
 vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6
 vyhrány, 07/2026).
 
@@ -207,18 +245,19 @@ Zbývá:
 1. **Výměna zástupných jmen za podvýběr skutečných** — čistě 1:1 přejmenování v datech
    (pole `LEVELS`), struktura ani cíle se nemění; po výměně přeměřit řešitelnost.
    Rozsah, který je potřeba dodat (aktuální zástupné hodnoty a jejich role):
-   - **12 křestních jmen učitelů**: Petr + Eva (IT), Karel + Ondřej (EP), Jan (EP/EL,
-     přebíhá Š101↔H59), Alena (EL, zkrácený úvazek — jen sudý týden), Lucie + Martin (ST),
-     Hana (matematika, učí na všech budovách → přebíhá), Jitka (jazyky), Tomáš
-     (tělocvik, jediný tělocvikář), Marie (management/ekonomika).
+   - ~~12 křestních jmen učitelů~~ — **hotovo 9. 8. 2026**: jména jdou ze skutečné
+     zásobárny, viz „Svět kampaně" výš. Role: Petr + Eva (IT), Jaroslav + Ondřej (EP),
+     Jan (EP/EL, přebíhá Š101↔H59), Alena (EL, zkrácený úvazek — jen sudý týden),
+     Šárka + Martin (ST), Renata (matematika, učí na všech budovách → přebíhá),
+     Jitka (jazyky), Tomáš (tělocvik, jediný tělocvikář), Simona (management/ekonomika).
    - **19 názvů předmětů**: všeobecné — Matematika, Angličtina, Tělocvik, Fyzika;
      IT — Programování, Databáze, Web, Management, Ekonomika; EP — Číslicová technika,
      Mikroprocesory, Hardware; EL — Elektronika, Měření; ST — CAD, CNC, Praxe,
      Stavba strojů, Technologie.
    - ~~kódy učeben~~ — **hotovo 9. 8. 2026**: učebny i zaměření budov jsou skutečné,
      viz „Svět kampaně" výš. Budova OPMB ze zadání zatím nepoužita.
-   - volitelně **11 označení tříd** (teď `1.IT`, `1.EP`, `2.EL`, `2.ST`, `3.IT`,
-     `3.EP`, `3.ST`, `4.IT`, `4.EP`, `4.EL`, `4.ST`).
+   - ~~označení tříd~~ — **hotovo 9. 8. 2026**: schéma `<ročník>.<obor>` i zkratky oborů
+     jsou skutečné (`IT`, `EP`, `S` slaboproud, `ST`) a v kampani je všech 16 tříd.
 2. Ruční otestování dotyku na reálném mobilu/tabletu (hold ~200 ms = tažení,
    švih = scroll) — na nasazené URL.
 

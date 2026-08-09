@@ -1,7 +1,7 @@
 # Skládání rozvrhu — předávací dokument
 
 Logická hra pro kolegy, kde se „skládá rozvrh“ (in-joke; teoreticky může být i neřešitelně těžká).
-Stav: **hotová hra** (kampaň 6 levelů s měřeným balancem, editor, sdílení, studentská edice)
+Stav: **hotová hra** (kampaň 7 levelů s měřeným balancem, editor, sdílení, studentská edice)
 v jediném souboru `index.html`. Tento dokument shrnuje původní zadání, co je hotové a jaká
 rozhodnutí padla během vývoje — jako podklad pro pokračování v Claude Code.
 
@@ -87,6 +87,13 @@ layout (rezerva pod zalomenou lištou, výraznější drop zóny i na slunci, sk
 v úzkých buňkách), studentská edice (detail v §5) a **ruční playtest** — l1–l4 + l6 odehrány
 a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 
+**Nařízená pauza (8/2026)** — každá třída má kartičku `Oběd` (`kind:"break"`, šrafovaná).
+Engine ji pustí jen do obědového okna (`LVL.breakWindow`, výchozí 4.–5. hodina) — tvrdé
+pravidlo, ne herní cíl; jako cíl by u l7 se 16 třídami znemožnil ověření vzorkováním.
+Nemá učitele ani učebnu (konflikt učitele/učebny se u ní přeskakuje), do `max_per_day`
+se nepočítá, do `class_no_gaps` ano. Cíl `lunch_break` tím v kampani ztratil smysl —
+typ v enginu zůstává pro vlastní levely.
+
 **UI a rozvržení**
 - Tři sloupce: Kartičky / Rozvrh / Požadavky. Responsivní — pod 1100 px se skládají pod sebe.
 - Hlavička: výběr levelu, Editor, Uložit/Načíst, ⓘ O hře, přepínač světlý/tmavý režim.
@@ -124,9 +131,10 @@ a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 a seznamem slotů.
 
 **Kampaň**
-- 6 levelů `l1`–`l6` (Rozjezd → Dvě třídy → Dva týdny → Tři třídy →
-  Iron-man dostavba → finále „Prase") ve světě 4 oborů, ročníků 1–4 a 3 budov
-  + externích tělocvičen.
+- 7 levelů `l1`–`l7` (Rozjezd → První ročníky → Druhé ročníky → Třetí ročníky →
+  Iron-man dostavba → Čtvrté ročníky → finále „Celá škola") ve světě 4 oborů, ročníků 1–4
+  a 3 budov + externích tělocvičen. Kampaň postupuje po ročnících, finále má
+  **všech 16 tříd** (4 obory × 4 ročníky) naráz.
   Rozsah, zástupná data a naměřený balanc: §5 „Obsah" a CLAUDE.md → „Svět kampaně".
 
 ---
@@ -226,22 +234,24 @@ odkazu nepřepsalo vlastní rozehranou pozici daného levelu.
 ## 5. Otevřené body / co dořešit / TODO
 
 Od zadavatele (stav 07/2026):
-1. **Podvýběr skutečných jmen** pro 1:1 výměnu za zástupná (jediný zbývající vstup).
-   Rozsah: **12 křestních jmen učitelů, 19 názvů předmětů, volitelně 11 označení tříd**
-   — přesné aktuální zástupné hodnoty a role jednotlivých učitelů drží CLAUDE.md →
+1. **Podvýběr skutečných jmen** pro 1:1 výměnu za zástupná. Zbývá: **19 názvů předmětů,
+   volitelně 11 označení tříd** — aktuální zástupné hodnoty drží CLAUDE.md →
    „Co je rozpracované / TODO". Po výměně přeměřit řešitelnost.
-   ~~Kódy učeben~~ — vyřešeno 9. 8. 2026: učebny i jejich zaměření jsou skutečné
-   (viz „Svět kampaně" v CLAUDE.md), zástupné zůstávají jen předměty, jména a třídy.
+   ~~Kódy učeben~~, ~~křestní jména učitelů~~ — vyřešeno 9. 8. 2026: učebny, zaměření
+   budov i jména jsou skutečné. Jména se berou ze **zásobárny** (whitelist 38 unikátů /
+   61 míst, CLAUDE.md → „Svět kampaně"); jiné křestní jméno do hry nepatří.
 2. ~~Návrh levelů~~ — vyřešeno kampaní „naslepo" (níže); úpravy jdou dělat v editoru.
 3. ~~Režim kola vs. iron-man; pohledy za učitele/učebnu~~ — postaveno obojí
    (iron-man = l5, pohledy hotové).
 
-**Obsah (07/2026, učebny přepsané 8/2026):** kampaň 6 levelů — svět inspirovaný
-skutečností (4 obory: informatika s mng. `IT`, elektronické počítače `EP`, slaboproud
+**Obsah (07/2026, učebny, jména a struktura kampaně přepsané 8/2026):** kampaň 7 levelů — svět inspirovaný
+skutečností (4 obory: Informatika a management `IT`, elektronické počítače `EP`, slaboproud
 `ELE`, strojírenství `STR`; ročníky 1–4; budovy Š101/H59/H618 + externí tělocvičny;
-~12 učitelů s křestními jmény; zástupné předměty). Obtížnost balancovaná simulacemi
-(podíl výher mezi náhodnými platnými rozvrhy, 4 000 vzorků): l1 10,8 % → l2 3,1 % →
-l3 2,8 % → l4 0,9 % → l5 iron-man 2,5 % (záměrný oddech před finále) → l6 „Prase" 0,4 %.
+12 učitelů se skutečnými křestními jmény; zástupné předměty). Obtížnost balancovaná simulacemi
+(podíl výher mezi náhodnými platnými rozvrhy, 20 000 vzorků): l1 10,3 % → l2 4,5 % →
+l3 2,6 % → l4 1,2 % → l5 iron-man 3,1 % (záměrný oddech) → l6 0,9 % →
+l7 „Celá škola" 0,6 %. Metrika není srovnatelná mezi levely různé velikosti — l7 má
+stejný řád jako l6, ale 64 kartiček proti 20.
 Vzorové řešení l4 (given pro l5) bylo nalezeno a ověřeno enginem; řešitelnost všech
 levelů potvrzena vzorkováním. Není to simulace reality — jména a předměty jde později
 1:1 vyměnit za podvýběr skutečných (pak přeměřit řešitelnost).
