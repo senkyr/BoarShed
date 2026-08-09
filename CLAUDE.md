@@ -31,17 +31,31 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   - placement: `{w: weekIndex, d: dayIndex 0–4, p: startPeriod 1-based}`
   - `field` řídí barvu kartičky (`FIELD_NAMES`, legenda se staví z oborů v levelu);
     `duration` = výška bloku (počet hodin).
-- **SVĚT KAMPANĚ** („naslepo" dle SPŠ, zástupné předměty/jména — lze 1:1 přejmenovat):
+- **SVĚT KAMPANĚ** (učebny a jejich zaměření skutečné; předměty a jména zástupná —
+  lze 1:1 přejmenovat):
   - obory: `IT` informatika s mng., `EP` elektronické počítače, `ELE` slaboproud,
     `STR` strojírenství; třídy `<ročník>.<IT|EP|EL|ST>` (field dle oboru třídy).
-  - budovy/učebny (učebna má VŽDY jednu budovu — hlídá `validateLevel`):
-    Š101: U1–U3, L1–L2 (poč. laby), T1 (tělocvična); H59: D1–D2, M1; H618: S1–S2, C1 (CNC).
-  - učitelé: Petr+Eva (IT), Karel+Ondřej (EP), Jan (EP/EL, přebíhá budovy),
-    Alena (EL, zkrácený úvazek), Lucie+Martin (ST), Hana (mat), Jitka (jazyky),
-    Tomáš (tělocvik), Marie (ekonomika).
-  - kampaň l1–l6, měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, simulace):
-    l1 ≈ 9,6 % · l2 ≈ 3,6 % · l3 ≈ 2,6 % · l4 ≈ 1,1 % · l5 (iron-man, záměrný oddech)
-    ≈ 2,7 % · l6 „Prase" ≈ 0,4 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
+  - **budovy = zaměření** (učebna má VŽDY jednu budovu — hlídá `validateLevel`):
+    - `Š101` **T3, T5** kmenové · **T9** odborná (Fyzika, Hardware, Management, Ekonomika)
+      · **T12, T14** počítačové laby — informatické předměty a teorie (kódy T1–T17).
+    - `H59` **E2** elektro dílna · **F3** měřicí lab · **F5** lab mikroprocesorů ·
+      **G1** číslicová technika · **G4** kmenová · **G7** tělocvična — elektrotechnika
+      (kódy E/F/G 1–7).
+    - `H618` **B7** kmenová · **B8** strojní dílna · **B26** rýsovna (CAD) · **C7**
+      odborná · **C25** CNC — strojírenství (kódy B/C 7–9 a 25–27).
+    - `Externí` **ZŠ 1–3** — půjčené tělocvičny, ad-hoc.
+    - Odborný předmět jde do budovy svého zaměření; **všeobecné (Matematika, Angličtina,
+      Fyzika) se učí na všech budovách** — obvykle tam, kde třída sedí. Právě tím vznikají
+      přechody mezi budovami, na kterých stojí cíl `teacher_transition_gap`.
+    - **Tělocvik je páka na obtížnost:** vlastní tělocvična G7/H59 u snadných levelů
+      (l1, l2), externí ZŠ 1–3 u těžkých (l3–l6). Tomáš je jediný tělocvikář, takže
+      učebna tělocviku sama o sobě nic neváže — tvrdý blok drží už učitel.
+  - učitelé: Petr+Eva (IT), Karel+Ondřej (EP), Jan (EP/EL, přebíhá Š101↔H59),
+    Alena (EL, zkrácený úvazek), Lucie+Martin (ST), Hana (mat, učí na všech budovách
+    → přebíhá), Jitka (jazyky), Tomáš (tělocvik), Marie (management/ekonomika).
+  - kampaň l1–l6, měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 4 000 vzorků):
+    l1 ≈ 10,8 % · l2 ≈ 3,1 % · l3 ≈ 2,8 % · l4 ≈ 0,9 % · l5 (iron-man, záměrný oddech)
+    ≈ 2,5 % · l6 „Prase" ≈ 0,4 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
 - **ÚLOŽIŠTĚ**: adaptér `Store` s feature-detekcí `window.storage` → `localStorage` → null.
   Páteř ukládání je serializační řetězec Base64(JSON), funguje vždy. Import (modál,
   autosave i URL hash `#p=<řetězec>`) validuje placementy přes `validPlacement()`
@@ -194,16 +208,15 @@ Zbývá:
    (pole `LEVELS`), struktura ani cíle se nemění; po výměně přeměřit řešitelnost.
    Rozsah, který je potřeba dodat (aktuální zástupné hodnoty a jejich role):
    - **12 křestních jmen učitelů**: Petr + Eva (IT), Karel + Ondřej (EP), Jan (EP/EL,
-     přebíhá budovy), Alena (EL, zkrácený úvazek — jen sudý týden), Lucie + Martin (ST),
-     Hana (matematika, učí „všude"), Jitka (jazyky), Tomáš (tělocvik, jediná
-     tělocvična), Marie (management/ekonomika).
+     přebíhá Š101↔H59), Alena (EL, zkrácený úvazek — jen sudý týden), Lucie + Martin (ST),
+     Hana (matematika, učí na všech budovách → přebíhá), Jitka (jazyky), Tomáš
+     (tělocvik, jediný tělocvikář), Marie (management/ekonomika).
    - **19 názvů předmětů**: všeobecné — Matematika, Angličtina, Tělocvik, Fyzika;
      IT — Programování, Databáze, Web, Management, Ekonomika; EP — Číslicová technika,
      Mikroprocesory, Hardware; EL — Elektronika, Měření; ST — CAD, CNC, Praxe,
      Stavba strojů, Technologie.
-   - **12 kódů učeben**: Š101 — U1, U2, U3 (kmenové), L1, L2 (počítačové),
-     T1 (tělocvična); H59 — D1, D2 (dílny), M1 (měřicí lab); H618 — S1, S2 (strojní
-     dílny), C1 (CNC). Budova OPMB ze zadání zatím nepoužita (kampani stačí 3 budovy).
+   - ~~kódy učeben~~ — **hotovo 9. 8. 2026**: učebny i zaměření budov jsou skutečné,
+     viz „Svět kampaně" výš. Budova OPMB ze zadání zatím nepoužita.
    - volitelně **11 označení tříd** (teď `1.IT`, `1.EP`, `2.EL`, `2.ST`, `3.IT`,
      `3.EP`, `3.ST`, `4.IT`, `4.EP`, `4.EL`, `4.ST`).
 2. Ruční otestování dotyku na reálném mobilu/tabletu (hold ~200 ms = tažení,

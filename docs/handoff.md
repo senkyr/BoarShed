@@ -124,8 +124,9 @@ a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 a seznamem slotů.
 
 **Kampaň**
-- 6 levelů `l1`–`l6` (Rozjezd → Dvě třídy → Dva týdny a dvě budovy → Tři budovy →
-  Iron-man dostavba → finále „Prase") ve světě 4 oborů, ročníků 1–4 a 3 budov.
+- 6 levelů `l1`–`l6` (Rozjezd → Dvě třídy → Dva týdny → Tři třídy →
+  Iron-man dostavba → finále „Prase") ve světě 4 oborů, ročníků 1–4 a 3 budov
+  + externích tělocvičen.
   Rozsah, zástupná data a naměřený balanc: §5 „Obsah" a CLAUDE.md → „Svět kampaně".
 
 ---
@@ -226,22 +227,24 @@ odkazu nepřepsalo vlastní rozehranou pozici daného levelu.
 
 Od zadavatele (stav 07/2026):
 1. **Podvýběr skutečných jmen** pro 1:1 výměnu za zástupná (jediný zbývající vstup).
-   Rozsah: **12 křestních jmen učitelů, 19 názvů předmětů, 12 kódů učeben, volitelně
-   11 označení tříd** — přesné aktuální zástupné hodnoty a role jednotlivých učitelů
-   drží CLAUDE.md → „Co je rozpracované / TODO". Po výměně přeměřit řešitelnost.
+   Rozsah: **12 křestních jmen učitelů, 19 názvů předmětů, volitelně 11 označení tříd**
+   — přesné aktuální zástupné hodnoty a role jednotlivých učitelů drží CLAUDE.md →
+   „Co je rozpracované / TODO". Po výměně přeměřit řešitelnost.
+   ~~Kódy učeben~~ — vyřešeno 9. 8. 2026: učebny i jejich zaměření jsou skutečné
+   (viz „Svět kampaně" v CLAUDE.md), zástupné zůstávají jen předměty, jména a třídy.
 2. ~~Návrh levelů~~ — vyřešeno kampaní „naslepo" (níže); úpravy jdou dělat v editoru.
 3. ~~Režim kola vs. iron-man; pohledy za učitele/učebnu~~ — postaveno obojí
    (iron-man = l5, pohledy hotové).
 
-**Obsah (07/2026):** kampaň 6 levelů postavená „naslepo" — svět inspirovaný skutečností
-(4 obory: informatika s mng. `IT`, elektronické počítače `EP`, slaboproud `ELE`,
-strojírenství `STR`; ročníky 1–4; budovy Š101/H59/H618; ~12 učitelů s křestními jmény;
-zástupné předměty). Obtížnost balancovaná simulacemi (podíl výher mezi náhodnými
-platnými rozvrhy): l1 9,6 % → l2 3,6 % → l3 2,6 % → l4 1,1 % → l5 iron-man 2,7 %
-(záměrný oddech před finále) → l6 „Prase" 0,4 %. Vzorové řešení l4 (given pro l5) bylo
-nalezeno a ověřeno enginem; řešitelnost všech levelů potvrzena vzorkováním (l6 na
-20 000 vzorcích). Není to simulace reality — jména a předměty jde později 1:1 vyměnit
-za podvýběr skutečných (pak přeměřit řešitelnost).
+**Obsah (07/2026, učebny přepsané 8/2026):** kampaň 6 levelů — svět inspirovaný
+skutečností (4 obory: informatika s mng. `IT`, elektronické počítače `EP`, slaboproud
+`ELE`, strojírenství `STR`; ročníky 1–4; budovy Š101/H59/H618 + externí tělocvičny;
+~12 učitelů s křestními jmény; zástupné předměty). Obtížnost balancovaná simulacemi
+(podíl výher mezi náhodnými platnými rozvrhy, 4 000 vzorků): l1 10,8 % → l2 3,1 % →
+l3 2,8 % → l4 0,9 % → l5 iron-man 2,5 % (záměrný oddech před finále) → l6 „Prase" 0,4 %.
+Vzorové řešení l4 (given pro l5) bylo nalezeno a ověřeno enginem; řešitelnost všech
+levelů potvrzena vzorkováním. Není to simulace reality — jména a předměty jde později
+1:1 vyměnit za podvýběr skutečných (pak přeměřit řešitelnost).
 
 **Studentská edice (07/2026):** hra má druhé publikum — studenty (hrají intenzivněji než
 kolegové na akci) a roli demonstrátoru AI vývoje. Doplněno: **sdílení vlastních levelů
