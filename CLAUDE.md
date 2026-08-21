@@ -55,15 +55,17 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     - `Š101` **T3, T5** kmenové · **T9** odborná (Fyzika, Hardware, Management, Ekonomika)
       · **T12, T14** počítačové laby — informatické předměty a teorie (kódy T1–T17).
     - `H59` **E2** elektro dílna · **F3** měřicí lab · **F5** lab mikroprocesorů ·
-      **G1** číslicová technika · **G4** kmenová · **G7** tělocvična — elektrotechnika
-      (kódy E/F/G 1–7).
+      **G1** číslicová technika · **G4** kmenová — elektrotechnika (kódy E/F/G 1–7 jsou
+      běžné učebny) · **H1** fiktivní vlastní tělocvična (škola reálně žádnou nemá — l1/l2
+      ji mají pro zjednodušení). **Tělocvična má vždy vlastní značení**, nikdy kód běžné
+      učebny (Jakub, 21. 8. 2026).
     - `H618` **B7** kmenová · **B8** strojní dílna · **B26** rýsovna (CAD) · **C7**
       odborná · **C25** CNC — strojírenství (kódy B/C 7–9 a 25–27).
     - `Externí` **ZŠ 1–3** — půjčené tělocvičny, ad-hoc.
     - Odborný předmět jde do budovy svého zaměření; **všeobecné (Matematika, Angličtina,
       Fyzika) se učí na všech budovách** — obvykle tam, kde třída sedí. Právě tím vznikají
       přechody mezi budovami, na kterých stojí cíl `teacher_transition_gap`.
-    - **Tělocvik je páka na obtížnost:** vlastní tělocvična G7/H59 u snadných levelů
+    - **Tělocvik je páka na obtížnost:** fiktivní vlastní tělocvična H1/H59 u snadných levelů
       (l1, l2), externí ZŠ 1–3 u těžkých (l3–l7). Tomáš je jediný tělocvikář, takže
       učebna tělocviku sama o sobě nic neváže — tvrdý blok drží už učitel.
   - učitelé: Petr+Eva (IT), Jaroslav+Ondřej (EP), Jan (EP/EL, přebíhá Š101↔H59),
@@ -82,12 +84,15 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     - Při výběru drž **rozlišitelnost na kartičce**: vedle sebe nedávej Martin/Martina
       ani Petr/Petra a hlídej podobné tvary (Alena/Lenka).
   - **kampaň l1–l7 postupuje po ročnících:** l1 rozjezd (1.IT) · l2 první ročníky ·
-    l3 druhé · l4 třetí · l5 iron-man nad l4 · l6 čtvrté ročníky · l7 „Celá škola"
+    l3 druhé · l4 třetí · l5 iron-man nad l4 · l6 maturitní (čtvrté) ročníky · l7 „Celá škola".
+    **Zobrazené číslo levelu = ročník** (od 21. 8. 2026): „0 · Rozjezd", „1 · První ročníky" …
+    „4 · Iron-man", „5 · Maturitní ročníky", „6 · Celá škola"; interní id `l1`–`l7` se NEMĚNÍ
+    (visí na nich autosave, ✓, `carryFrom`, odkazy) — číslo v `name` je o jedna nižší než v id
     (**všech 16 tříd** = 4 obory × 4 ročníky, 80 kartiček).
   - měřená obtížnost (výhry mezi náhodnými platnými rozvrhy, 20 000 vzorků; přeměřeno
     9. 8. 2026 po zpřísnění `teacher_transition_gap` — vyžaduje skutečný přechod):
     l1 ≈ 10,3 % · l2 ≈ 4,5 % · l3 ≈ 0,10 % · l4 ≈ 0,62 % · l5 (záměrný oddech) ≈ 3,1 % ·
-    l6 ≈ 0,07 % · l7 ≈ 0,24 %. Po změně dat/cílů přeměř („Řešitelnost?" nebo simulace).
+    l6 ≈ 0,07 % · l7 ≈ 0,24 %. Po změně dat/cílů přeměř („Jde to vůbec vyhrát?" nebo simulace).
     **Měř na ≥ 20 000 vzorcích** — na 4 000 kolísá odhad u l1 o ±1,5 p. b., což stačí
     na falešný dojem, že se obtížnost posunula.
   - **Pozor, co ta metrika je:** podíl výher mezi *náhodnými* rozvrhy. Mezi levely různé
@@ -102,29 +107,40 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **ÚLOŽIŠTĚ**: adaptér `Store` s feature-detekcí `window.storage` → `localStorage` → null.
   Páteř ukládání je serializační řetězec Base64(JSON), funguje vždy. Import (modál,
   autosave i URL hash `#p=<řetězec>`) validuje placementy přes `validPlacement()`
-  (rozsahy w/d/p + `fits`); hash se po načtení maže (`history.replaceState`) a
-  neautosavuje. Dokončené levely drží set `DONE` (klíč `done`, ✓ v selectu). Motiv
-  nastavuje synchronní skript v `<head>` (localStorage / `prefers-color-scheme`, žádný
-  flash), async `Store` (artefakt) ho jen doladí.
+  (rozsahy w/d/p + `fits`) a vynechané kartičky spočítá do hlášky (`IMPORT_NOTE`);
+  hash se po načtení maže (`history.replaceState`) a neautosavuje. Dokončené levely
+  drží set `DONE` (klíč `done`, ✓ v selectu). Motiv nastavuje synchronní skript
+  v `<head>` (localStorage / `prefers-color-scheme`, žádný flash), async `Store`
+  (artefakt) ho jen doladí.
 - **STAV**: `LVL` (aktuální level) + `S = {placements, selected, view, active, pickedFrom}`.
   - `view` ∈ `class | teacher | room` = dimenze pohledu na rozvrh; `active` = vybraná
-    entita v té dimenzi. Umisťovat lze jen ve `view==="class"`; `teacher`/`room` jsou
-    jen pro čtení (kontrola konfliktů). Helpery: `entitiesOf(view)`, `entityOf(card,view)`.
+    entita v té dimenzi. **Hraje se ve všech třech pohledech** (od 21. 8. 2026; dřív byly
+    Učitelé/Učebny jen pro čtení): kartičku lze položit jen do rozvrhu, který je vidět, a jen
+    když do něj patří — `belongsHere(c)` = `entityOf(c,S.view)===S.active`. Zvednutí kartičky
+    (`pickUp`/`startDrag`) přepne na její rozvrh **ve stejném pohledu** (`focusHome`: v Učitelích
+    u Petra zůstáváš u učitelů, ne skok do Tříd — Jakub); jen pauza (nemá učitele ani učebnu)
+    skočí do Tříd. Helpery: `entitiesOf(view)`, `entityOf(card,view)`, `homeOf(card)`.
   - `pickedFrom` = původní pozice zvednuté kartičky; Esc, zrušené tažení i výběr jiné
-    karty ji přes `restoreLifted()` vrací na místo. Přepnutí záložky/pohledu jinam ruší
-    výběr (`dropSelection()`) a drop zóny svítí jen v rozvrhu třídy vybrané kartičky —
-    jinak šla kartička položit „naslepo“ do rozvrhu, který nebyl vidět (oprava 9. 8. 2026).
+    karty ji přes `restoreLifted()` vrací na místo. Přepnutí záložky/pohledu na rozvrh, kam
+    vybraná kartička nepatří, ruší výběr (`dropSelection()`) a drop zóny svítí jen v jejím
+    rozvrhu — jinak šla kartička položit „naslepo“ do rozvrhu, který nebyl vidět (oprava 9. 8. 2026).
   - `assisted` = desku poskládal řešič nebo import → výhra ukáže jiný banner a NEdá ✓
     (fér ✓). Nastavují randomFill/importStr, nulují ruční akce, undo/redo a loadLevel;
-    do exportu/autosave se propisuje jako `a:1`, takže přežije i reload.
+    do exportu/autosave se propisuje jako `a:1`, takže přežije i reload. **Nuluje jen
+    skutečný tah** — vrácení zvednuté kartičky na totéž místo (které není ani krokem
+    historie) příznak nechává; jinak byl ✓ zadarmo (nález 21. 8. 2026).
   - `locked` = Set id kartiček zamčených levelem (`given`/`carryFrom`, aplikuje
     `applyGiven()` v `loadLevel`). Zamčené nejde zvednout/táhnout/odebrat, `clearAll`
     je zachová, autosave/import je nepřepisuje, řešič i kontrola řešitelnosti je berou
-    jako pevný základ. V rozvrhu mají 🔒. Přenos `carryFrom`, který by sám o sobě
-    znemožnil některý cíl (kontroluje `goalDeadWithLocked` — např. zamčené 3 hodiny
-    v den s cílem „max 2 denně“), se nepoužije: základ spadne na vzorové `given`
-    a hráč dostane hlášku s cílem, kvůli kterému se to stalo (oprava 9. 8. 2026 —
-    vlastní výherní pozice z l4 uměla udělat l5 neřešitelný).
+    jako pevný základ. V rozvrhu mají 🔒. **Přenáší se jen dohraný zdroj** — `carryReady()`
+    chce autosave kompletní, bez tvrdého konfliktu a se splněnými cíli zdrojového levelu;
+    jinak zůstává vzorové `given` s hláškou (21. 8. 2026: rozehraný l4 s červeným konfliktem
+    se zamykal do l5 jako neopravitelný konflikt a level tiše nešel vyhrát; částečný l4
+    zase l5 zlehčil). Přenos, který by sám o sobě znemožnil některý cíl (kontroluje
+    `goalDeadWithLocked` — např. zamčené 3 hodiny v den s cílem „max 2 denně“) nebo měl
+    v cílovém levelu konflikt, se také nepoužije: základ spadne na vzorové `given`
+    a hráč dostane hlášku s důvodem (oprava 9. 8. 2026 — vlastní výherní pozice z l4
+    uměla udělat l5 neřešitelný).
 - **HISTORIE**: `HIST` + `pushHist/undo/redo` — snapshoty placements, per-level,
   tlačítka ↶/↷ + Ctrl+Z / Ctrl+Y (ignorují fokus v input/textarea). `pushHist()` se
   volá PŘED mutací placements; snapshot počítá zvednutou kartičku na jejím původním
@@ -139,15 +155,18 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **LOGIKA**: `cells()`, `computeConflicts()` (globálně napříč třídami),
   `hasHardConflict()` (pro řešič), `evalGoal()` (switch podle `g.type`).
 - **ŘEŠIČ**: `randomFill(smart)` nad `fillOnce()` — randomizovaný backtracking se
-  stropem, delší bloky se zkoušejí dřív; bere ručně umístěné i zamčené jako pevné,
-  respektuje jen tvrdé požadavky. Se `smart=true` (checkbox v modálu „Náhodně“) běží
-  multi-restart ~700 ms a vybere výsledek s nejvíc splněnými měkkými cíli
-  (`goalsMetIn`). Když se vše nevejde, `blockNote()` nahlásí dominantní tvrdý blok
+  stropem uzlů **a časovým boxem** (1,5 s; v chytrém režimu 150 ms na pokus — `FILL_TIMED_OUT`
+  přidá do hlášky „řešič vyčerpal časový limit“), delší bloky se zkoušejí dřív; bere ručně
+  umístěné i zamčené jako pevné, respektuje jen tvrdé požadavky. Samotný strop uzlů nestačil:
+  neřešitelný level z editoru (31 hodin do 30 slotů) zamrazil UI na ~68 s (21. 8. 2026).
+  Se `smart=true` (checkbox v modálu „Náhodně“) běží multi-restart ~700 ms a vybere
+  výsledek s nejvíc splněnými měkkými cíli (`goalsMetIn`). Když se vše nevejde, `blockNote()` nahlásí dominantní tvrdý blok
   (učitel/učebna/třída) u nevešlých kartiček.
 - **KONTROLA ŘEŠITELNOSTI**: `checkSolvableAsync(levelId, samples, onProgress)` —
   vzorkuje náhodné kompletní rozvrhy chunkovaně (časové boxy ~25 ms, UI nezamrzá;
   globální `LVL`/`S` se prohazují jen uvnitř synchronního chunku s try/finally).
-  0 výher ⇒ level je extrémně těžký / neřešitelný. Tlačítko „Řešitelnost?" otevírá
+  0 výher ⇒ level je extrémně těžký / neřešitelný. Tlačítko **„Jde to vůbec vyhrát?"** (dřív
+  „Řešitelnost?" — moc úsečné, Jakub 21. 8. 2026; v editoru „Jde to vyhrát?") otevírá
   modál s průběhem, zrušením a tabulkou per-cíl; z konzole `await checkSolvable("lX")`.
 - **AKCE**: `tryPlace / pickUp / unplace / clearAll` (všechny respektují `S.locked`).
 - **EDITOR LEVELŮ**: tlačítko „Editor“ v hlavičce → `editorModal()`. Vlastní level =
@@ -162,18 +181,75 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   odkazu nad běžící hrou chytá `hashchange` (společná cesta `handleHash()`).
 - **O HŘE**: `aboutModal()` (ⓘ v hlavičce) — kredit AI vývoje, čísla balancu,
   odkaz na repo (`REPO_URL` = https://github.com/senkyr/BoarShed).
-- **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`.
-  `renderTabs` kreslí přepínač pohledu + záložky entit; `renderSchedule` umí všechny
+- **MODÁLY**: všechny jdou přes `openOverlay(modal, onClose)` — klik mimo i Esc zavře
+  (capture listener předběhne globální Esc), fokus skočí na první tlačítko v modálu
+  a po zavření se vrátí; `ov.close()` je jediná cesta ven, `onClose` uklízí (zrušení
+  běžícího testu řešitelnosti). `.modal` má `max-height` + `overflow:auto`, ať na
+  telefonu neutečou tlačítka za okraj. (21. 8. 2026: fokus zůstával pod overlayem
+  a Enter otevřel druhý modál přes první.)
+- **LAYOUT A DVĚ ZÁSADY (Jakub, 21. 8. 2026):** (1) **stránka nikdy nescrolluje do stran** —
+  rozvrh má sloupce `minmax(0,1fr)`, paleta zalamuje, `html,body{overflow-x:hidden}` je jen pojistka;
+  (2) **ovládání dole je vždy na obrazovce** — lišta je fixní a rezervu pod obsahem počítá
+  `updateDock()` z její skutečné výšky (`--tb-h`, `--dock-h`; na mobilu + sbalený panel požadavků),
+  ne media queries. Hlavička: titul | level (`<select class="lvlsel">` vínově jako odkaz) +
+  počítadlo `#placedBadge` · popis levelu pod tím · vpravo Editor, Uložit a ikonová dvojice ⓘ ◐
+  (`.btngroup`). **Úzký displej (< 820 px, stejná hranice jako překlopení rozvrhu):** hlavička na
+  dva řádky, Editor a Uložit v nabídce „Více“ (`#moreMenu`), záložky entit jako `<select
+  class="tabsel">`, paleta jen aktivní třídy zalomená do řádků (ostatní třídy počtem), kartičky
+  v rozvrhu bez × (vrací se tažením nebo ťuknutím na zásobník — `returnToPalette()`, platí i na
+  desktopu), požadavky jako **fixní sbalený proužek** nad lištou (`#colGoals` se souhrnem
+  v `#goalsSummary`, ťuknutí rozbalí, výhra rozbalí sama), lišta na jeden řádek ikon + stavový
+  řádek; rozbalený proužek se s novým levelem sbalí. V liště nemá žádné tlačítko zvýraznění —
+  „Náhodně rozmístit" je pomůcka, ne hlavní akce (Jakub, 21. 8. 2026). Překryvy jdou transponovaně **pod sebe do bloku** (`.lanegrp`, řádky hodin se natáhnou)
+  — pruhy vedle sebe se v 58px sloupci rozsypaly na písmena.
+- **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`
+  (+ `updateDock()`). `renderPalette` skládá kartičky do **skupin podle entity aktuálního pohledu**
+  (`.pgroup`: v Třídách čtvereček oboru + třída, v Učitelích/Učebnách jméno/učebna; počet; skupina
+  zobrazeného rozvrhu první a plná, ostatní tlumené `.dim` — klik na tlumenou přepne rozvrh na její
+  skupinu; pauza mimo Třídy ve zvláštní tlumené skupině), plní počítadlo `#palCount`
+  a legendu oborů v patičce palety (`#legend` — patří k barvám, které vysvětluje). `renderGoals`
+  kreslí „2 / 5 požadavků“ + segmentový ukazatel (`.segbar`, dílek = požadavek), konfliktní řádek
+  s důvodem (`conflictSummary()`: první obsazená buňka → „Út 2. h — 1.IT má dvě hodiny naráz
+  (Matematika, Web)“), souhrn do hlavičky panelu, počítadlo v hlavičce a barvu tečky ve stavovém
+  řádku (`setStatusDot`). **Výherní banner nese tlačítko „Dál → <další level>“** (`.win .next`,
+  jediné zvýrazněné tlačítko ve hře — postup dál; u posledního levelu text „kampaň dohraná“),
+  jinak hráč hledal přepínač levelů (Jakub, 21. 8. 2026). Legenda oborů = zkratka jako na čipu
+  třídy + plný název (`FIELD_NAMES`: „IT — informatika a management“ …), pod sebou.
+  `renderTabs` kreslí přepínač pohledu (segmentový ovladač `.seg` — jeden rámeček, verzálky,
+  aktivní segment vystouplý) + záložky entit (samostatné pilulky s plnou barvou) — dvě úrovně,
+  dvě tvarosloví, ať se nepletou (Jakub, 21. 8. 2026); `renderSchedule` umí všechny
   tři pohledy a překrývající se kartičky řeší „pruhy" (lanes), aby se neschovaly.
-  Vícehodinové bloky mají čárku na každé hranici hodiny (`.tick`, kolmo na osu hodin
-  dle orientace) a štítek délky `.durb` („2h“) vpravo dole — dvojhodinovka musí být
-  poznat na první pohled i uvnitř pruhu.
+  Vícehodinové bloky mají zářez na každé hranici hodiny (`.tick`, kolmo na osu hodin
+  dle orientace) a v rozvrhu štítek délky `.durb` („2h“) vpravo dole — dvojhodinovka
+  musí být poznat na první pohled i uvnitř pruhu. **Popisek kartičky** je na šířku ve dvou
+  sloupcích (`.info`: předmět | učebna, učitel/třída | budova — levý dolní je to, podle
+  čeho pohled NEfiltruje; v pohledu učeben je vpravo nahoře učitel), na úzkém displeji
+  pod sebou (předmět, „kdo · kde“, budova; budova se pod 600 px skrývá). Tři řádky pod
+  sebou se do buňky, natož do pruhu, nevešly (Jakub, 21. 8. 2026). Hodiny a dny jsou tlumené
+  štítky (`.gh`/`.gp`), prázdná buňka má jen tenký plný rámeček — čárkovaný dostane až drop zóna,
+  a ta je **zelená** (`--ok`, „sem smíš“): vínová/červená znamená ve hře konflikt a zóny v ní
+  vypadaly jako zákaz (Jakub, 21. 8. 2026). Totéž platí pro cíl „zpět do zásobníku“.
+  **Paleta drží
+  stejnou mřížku** (předmět | učebna, čip třídy + učitel | budova; pauza: „4.–5. h“ a „nařízená
+  pauza“ vpravo, čip vlevo) a **délka kartičky = ŠÍŘKA podle hodin** (`--dur`: 1h 165 px,
+  2h 222 px, 3h 279 px, výška pořád stejná, svislá čárkovaná hranice hodiny) — bez štítku
+  „2h“. Není to proporční (1h by se s popiskem do půlky nevešla), jen zřetelně kratší;
+  dvojnásobná VÝŠKA byla slepá ulička (délka bloku je v rozvrhu vodorovná). Sloupec palety
+  má 250 px, ať se 2h kartička vejde. Položená kartička má sytou výplň (30 % barvy
+  oboru), rámeček v barvě oboru a stín, aby se nepletla s volnou buňkou; hranice hodin
+  jsou jen zářezy na okrajích (`.tick` s gradientem), ne linka přes blok.
+  Transponovaná mřížka má sloupce dnů `minmax(0,1fr)` (vejít se do šířky, viz zásady výš);
+  čitelnost drží `hyphens:auto` (html má `lang="cs"`), menší písmo a užší odsazení pod 820 px.
+  Pozor na pořadí CSS: přepisy pro úzký displej jsou v **posledním** `@media` bloku na konci
+  stylů — dřívější blok obecná pravidla nepřebil (chyba 21. 8. 2026).
   **Orientace** dle šířky (`isHorizontal()`, breakpoint 820 px): desktop „na šířku"
   (dny = řádky, hodiny = sloupce), úzký displej transponovaně (hodiny = řádky, dolů).
   Pruhy se proto skládají kolmo na osu hodin (vodorovně vs. svisle). Při překlopení
   orientace překresluje listener na `resize`. Překresluje se celé (jednoduchost nad
   výkonem; při ~16 kartách to stačí).
-- **el(tag, props, ...kids)** — mini-helper na DOM, bezpečný vůči diakritice.
+- **el(tag, props, ...kids)** — mini-helper na DOM, bezpečný vůči diakritice. Styl
+  z objektu: custom property (`--f`, `--dur`) jde přes `style.setProperty` — `Object.assign`
+  ji tiše zahodí, a tak barva oboru na kartičkách do 21. 8. 2026 vůbec nefungovala.
 
 ### Typy herních cílů (`evalGoal`)
 
@@ -211,20 +287,26 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   jít položit do rozvrhu cizí třídy), vyvolej konflikt
   (musí zčervenat + tooltip), překryj dvě karty stejné třídy (musí být vidět vedle
   sebe / nad sebou, ne zmizet), zkontroluj dvojhodinovku (čárka na hranici hodiny +
-  štítek „2h“, v obou orientacích), přepni pohled Třídy/Učitelé/Učebny (učitel/učebna jen
-  pro čtení), zúži okno pod ~820 px (rozvrh se překlopí na hodiny dolů), spusť
-  „Náhodně" (i s checkboxem měkkých cílů) a „Řešitelnost?" (modál s průběhem, jde
+  štítek „2h“, v obou orientacích), přepni pohled Třídy/Učitelé/Učebny a polož kartičku
+  i v pohledu Učitelé (zvednutí nesmí přepnout do Tříd; tlumená kartička cizího učitele
+  přepne rozvrh na něj), zúži okno pod ~820 px (rozvrh se překlopí na hodiny dolů), spusť
+  „Náhodně" (i s checkboxem měkkých cílů) a „Jde to vůbec vyhrát?" (modál s průběhem, jde
   zrušit), vyzkoušej ↶ Zpět / ↷ Znovu (i Ctrl+Z/Y), ulož/načti řetězec i pojmenovaný
   slot, zkopíruj odkaz a otevři ho (načte pozici, hash zmizí z URL), přepni motiv
-  (tmavý nesmí při načtení bliknout světlým). V l5 ověř zamčené kartičky (🔒 — nejde
-  zvednout, přežijí Smazat) a v Editoru ulož/smaž zkušební level (objeví se s `*`
+  (tmavý nesmí při načtení bliknout světlým). U libovolného modálu stiskni Esc (zavře)
+  a Enter hned po otevření (jen zavře/zruší, nesmí otevřít druhý). V l5 ověř zamčené
+  kartičky (🔒 — nejde zvednout, přežijí Smazat) a že se rozehraný/konfliktní l4 nepřenese
+  (hláška, základ je vzorový) a v Editoru ulož/smaž zkušební level (objeví se s `*`
   v přepínači) a pošli level odkazem („Odkaz na level" → otevřít v novém tabu).
   Ověř fér ✓ (výhra přes „Náhodně + zkusit cíle" ukáže banner „poskládal řešič" bez ✓;
   ruční tah pak povýší na pravou výhru) a otevři ⓘ O hře. Projdi světlý i tmavý motiv
-  a úzké okno (<600 px): fixní lišta nesmí zakrývat spodek obsahu (padding-bottom
-  media queries) a umístěné kartičky skrývají řádek budovy. Žádné chyby v konzoli.
+  a úzké okno (< 820 px): stránka nesmí scrollovat do stran (`scrollWidth ≤ innerWidth`, i v l7),
+  fixní lišta ani proužek požadavků nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
+  ukazuje jen aktivní třídu, kartička zvednutá z rozvrhu se vrátí ťuknutím na zásobník, překryv
+  dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, proužek požadavků se rozbalí
+  a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
   Dotyk otestuj i na reálném zařízení, ne jen v emulaci.
-- **Po úpravě dat/cílů levelu** spusť „Řešitelnost?" (nebo `checkSolvable("lX")`
+- **Po úpravě dat/cílů levelu** spusť „Jde to vůbec vyhrát?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.
 
 ## Konvence
@@ -254,6 +336,18 @@ vyžaduje aspoň jeden skutečný přechod (dřív šel splnit rozházením hodi
 po změně přeměřena obtížnost l3/l4/l6/l7), dvojhodinovky dostaly čárky na hranicích hodin
 + štítek „2h“ a carryFrom přenos, který by znemožnil cíl levelu, padá na vzorové `given`
 s hláškou (`goalDeadWithLocked`).
+
+Opravy z testu 21. 8. 2026 (detailní průchod desktop + emulovaný mobil): barva oboru se na
+kartičky nikdy nepropsala (`el()` a custom property), iron-man přenáší jen dohraný zdroj
+(`carryReady`), řešič má časový box, fér ✓ už nejde obejít zvednutím a vrácením kartičky,
+modály přes `openOverlay` (Esc, fokus, výška na mobilu), import hlásí vynechané kartičky,
+transponovaný rozvrh se vejde do šířky. Designově: dvousloupcový popisek
+kartičky (i v paletě), šířka kartičky v paletě podle hodin (výška stejná), sytější výplň
+a zářezy místo dělicí linky, segmentový přepínač pohledu. Doladění z návrhového plátna (týž den,
+všech šest bodů — viz LAYOUT výš): hlavička s levelem v titulku a počítadlem, paleta po třídách,
+tišší mřížka, „2 / 5“ + segmenty + konflikt s důvodem, lišta s ikonami a tečkou, mobilní chrome
+(Více, select tříd, paleta aktivní třídy, fixní proužek požadavků, lišta na jeden řádek).
+Zůstává: klávesnicové ovládání.
 
 Obsah je hotový „naslepo": kampaň 7 levelů (l1–l7, viz SVĚT KAMPANĚ výš), obtížnost
 vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6

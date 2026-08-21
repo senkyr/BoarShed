@@ -50,36 +50,92 @@ try{
   .muted{color:var(--ink-soft)}
   a{color:var(--accent)}
 
-  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
-  header .brand{display:flex;flex-direction:column;line-height:1.15}
-  header .brand b{font-size:18px}
-  header .brand span{font-size:12px;color:var(--ink-soft)}
-  header .spacer{flex:1}
-  header .ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  /* hlavička: titul | level (vínově, jako odkaz) + počítadlo · popis levelu pod tím · vpravo akce.
+     Na úzkém displeji dvě řádky (titul + ikony, level přes šířku), Editor a Uložit v „Více“. */
+  header{display:grid;grid-template-columns:auto auto 1fr auto;grid-template-areas:"title lvl . ctrls" "desc desc desc ctrls";
+    align-items:center;column-gap:12px;row-gap:2px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--surface);position:relative}
+  header .title{grid-area:title;font-size:18px;font-weight:650;line-height:1.15}
+  header .lvl{grid-area:lvl;display:flex;align-items:center;gap:8px;border-left:1px solid var(--line);padding-left:12px}
+  header #lvlDesc{grid-area:desc;font-size:12px;color:var(--ink-soft);line-height:1.3}
+  header .ctrls{grid-area:ctrls;display:flex;gap:8px;align-items:center;justify-self:end}
+  .lvlsel{font:inherit;font-size:14px;font-weight:650;color:var(--accent);border:0;background:transparent;padding:2px 0;cursor:pointer;max-width:260px}
+  .badge{font-size:11px;color:var(--ink-soft);border:1px solid var(--line);border-radius:99px;padding:1px 8px;white-space:nowrap}
+  .btngroup{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+  .btngroup>button{border:0;border-radius:0;border-left:1px solid var(--line);background:transparent;display:inline-flex;align-items:center}
+  .btngroup>button:first-child{border-left:0}
+  .btngroup>button:hover:not(:disabled){background:var(--surface-2)}
+  .more{display:contents} /* desktop: tlačítka přímo v hlavičce */
+  #moreBtn{display:none}
+  #aboutBtn,#themeBtn{padding:7px 10px}
 
-  .wrap{display:flex;gap:14px;align-items:flex-start;padding:14px 18px 80px;max-width:1500px;margin:0 auto}
+  /* rezervu pod obsahem počítá JS z výšky fixní lišty (+ sbaleného panelu požadavků na mobilu): --dock-h.
+     Ovládání dole musí být vždy na obrazovce, nikdy se k němu nescrolluje. */
+  .wrap{display:flex;gap:14px;align-items:flex-start;padding:14px 18px calc(var(--dock-h,80px) + 20px);max-width:1500px;margin:0 auto}
+  html{overflow-x:hidden} /* stránka nesmí scrollovat do stran — obsah se skládá do šířky (rozvrh 1fr, paleta zalamuje).
+                             Jen na html, ne na body: overflow na body z něj udělá scroll kontejner a position:sticky sloupců přestane držet */
   .col{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
   .col-head{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
   .col-head h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
   .col-body{padding:12px 14px}
-  #schedule{overflow-x:auto}
+  .col-foot{padding:10px 14px;border-top:1px solid var(--line)}
+  #schedule{overflow-x:auto} /* jen pojistka pro vlastní levely s mnoha hodinami; kampaň se vejde */
 
-  #colPalette{flex:0 0 230px}
+  #colPalette{flex:0 0 250px} /* 2h kartička (222 px) + vnitřní odsazení */
   #colSchedule{flex:1 1 auto;min-width:0}
   #colGoals{flex:0 0 280px}
+  /* třísloupcové rozložení: zásobník a požadavky jsou přilepené k hornímu okraji a scrollují UVNITŘ sebe,
+     takže cesta ke kartičkám dole neodveze rozvrh ani úkoly z obrazu (Jakub, 21. 8. 2026). Výška = okno
+     minus dok; stránkou se scrolluje jen kvůli rozvrhu (dva týdny). */
+  @media(min-width:1101px){
+    #colPalette,#colGoals{position:sticky;top:14px;max-height:calc(100vh - var(--dock-h,80px) - 28px);display:flex;flex-direction:column}
+    #colPalette .col-head,#colPalette .col-foot,#colGoals .col-head{flex-shrink:0}
+    #colPalette .col-body,#colGoals .col-body{overflow:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain}
+  }
   @media(max-width:1100px){.wrap{flex-direction:column}
-    #colPalette,#colGoals{flex:1 1 auto;width:100%}}
-  /* fixní toolbar se na úzkých displejích zalomí do víc řádků — obsah potřebuje větší rezervu */
-  @media(max-width:900px){.wrap{padding-bottom:150px}}
-  @media(max-width:560px){.wrap{padding-bottom:200px}}
-  /* úzké sloupce transponovaného rozvrhu: řádek budovy skrýt, ať se názvy nelámou tolik */
-  @media(max-width:600px){.pcard .sub:last-child{display:none}}
+    #colPalette,#colSchedule,#colGoals{flex:1 1 auto;width:100%;min-width:0}}
+  /* ÚZKÝ DISPLEJ (stejná hranice jako překlopení rozvrhu): hlavička na dva řádky, paleta jen aktivní
+     třídy zalomená do řádků, rozvrh bez ×, požadavky jako fixní sbalený proužek nad lištou, lišta na jeden řádek ikon */
+  @media(max-width:819px){
+    header{grid-template-columns:1fr auto;grid-template-areas:"title ctrls" "lvl lvl";column-gap:8px;row-gap:8px;padding:10px 14px}
+    header .title{font-size:16px}
+    header .lvl{border-left:0;padding-left:0}
+    header #lvlDesc{display:none}
+    .lvlsel{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:none}
+    .more{display:none;position:absolute;right:14px;top:calc(100% - 6px);flex-direction:column;gap:4px;padding:6px;
+      background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);z-index:40}
+    .more.open{display:flex}
+    #moreBtn{display:inline-flex}
+    .wrap{padding-left:14px;padding-right:14px}
+    #colGoals{position:fixed;left:14px;right:14px;bottom:calc(var(--tb-h,84px) + 8px);z-index:29;width:auto}
+    #colGoals .col-head{cursor:pointer;padding:8px 12px}
+    #colGoals .col-head h2{display:none}
+    #colGoals .col-body{display:none;max-height:45vh;overflow:auto}
+    #colGoals.open .col-body{display:block}
+    #colGoals.open .gcaret{transform:rotate(180deg)}
+    .toolbar{padding:8px 14px 10px;gap:8px}
+    .toolbar button{min-width:44px;height:40px;justify-content:center}
+    .toolbar .btngroup>button{height:38px}
+    .toolbar .lbl{display:none}
+    #randomBtn{flex:1}
+    .toolbar .spacer{display:none}
+    .toolbar .status{width:100%;font-size:12px}
+  }
+  #colGoals .gsum{display:none;align-items:center;gap:8px;flex:1;font-size:13px}
+  #colGoals .gcaret{display:none;font-size:11px;color:var(--ink-soft);transition:transform .15s}
+  .toolbar .lbl-s{display:none}
 
   /* ---------- KARTIČKY ---------- */
-  .palette{display:flex;flex-direction:column;gap:8px}
+  .palette{display:flex;flex-direction:column;gap:10px}
+  .pg-head{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px}
+  .pg-head b{font-weight:650}
+  .pg-head .sw{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .pg-head .ln{flex:1;height:1px;background:var(--line)}
+  .pg-cards{display:flex;flex-wrap:wrap;gap:8px}
+  .pgroup.dim .pg-head{color:var(--ink-soft)} .pgroup.dim .card{opacity:.55} /* cizí třída: vidět, ale v pozadí */
+  #colPalette.over{outline:2px dashed var(--ok);outline-offset:-2px} /* tažení zpět do zásobníku = odebrání */
+  .palette-note{font-size:12px;color:var(--ink-soft)}
   .card{position:relative;border:1px solid var(--line);border-left:4px solid var(--f);
-    border-radius:8px;padding:6px 8px;background:color-mix(in srgb,var(--f) 12%,var(--surface));
+    border-radius:8px;padding:6px 8px;background:color-mix(in srgb,var(--f) 18%,var(--surface));
     cursor:grab;user-select:none}
   .card:active{cursor:grabbing}
   .card .subj{font-weight:650;font-size:13px}
@@ -93,40 +149,72 @@ try{
       color-mix(in srgb,var(--ink-soft) 22%,transparent) 4px,color-mix(in srgb,var(--ink-soft) 22%,transparent) 8px);
     background-color:var(--surface-2);border-style:dashed}
   .card.brk .subj,.pcard.brk .subj{font-weight:600;font-style:italic}
-  .card.dur2::after,.card.dur3::after{content:attr(data-dur);position:absolute;top:4px;right:6px;
-    font-size:10px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+  /* délka bloku = ŠÍŘKA kartičky i v paletě (jako v rozvrhu na desktopu, kde jsou hodiny sloupce):
+     jednohodinovka je užší, dvouhodinovka delší, výška je pořád stejná; hranice hodiny je svislá
+     čárkovaná linka. Není to proporční (1h by se s popiskem do půlky nevešla), jen zřetelně „kratší“.
+     Štítek „2h“ v paletě nestačil a dvojnásobná VÝŠKA byl nesmysl (Jakub, 21. 8. 2026). */
+  .card{width:min(100%,calc(108px + var(--dur,1) * 57px))} /* 1h 165 px · 2h 222 px · 3h 279 px */
+  .card .tick{position:absolute;pointer-events:none;top:6px;bottom:6px;width:0;
+    border-left:1px dashed color-mix(in srgb,var(--f) 60%,transparent)}
   .palette-empty{font-size:13px;color:var(--ink-soft);padding:8px 2px}
 
   /* ---------- ROZVRH ---------- */
   .tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .tab{padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-size:13px}
-  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .tab.view{background:transparent}
-  .tab.view.active{background:var(--accent-soft);color:#fff;border-color:var(--accent-soft)}
-  .tabsep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
-  .ro-note{font-size:11px;color:var(--ink-soft);font-style:italic;align-self:center;margin-left:2px}
-  .pcard.ro{cursor:pointer}
+  /* dvě úrovně, dvě tvarosloví: hlavní přepínač dimenze (Třídy / Učitelé / Učebny) je segmentový
+     ovladač — jeden rámeček, verzálky, aktivní segment „vystouplý“; podružné záložky entit jsou
+     samostatné pilulky s plnou barvou. Dřív šlo o dvě řady podobných obdélníků (Jakub, 21. 8. 2026). */
+  .seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+  .tab.view{border:0;background:transparent;border-radius:7px;padding:4px 11px;
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .tab.view:hover:not(.active){color:var(--ink)}
+  .tab.view.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+  .tab:not(.view){padding:4px 13px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:13px}
+  .tab:not(.view).active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tabsel{font:inherit;font-size:13px;padding:4px 10px;cursor:pointer}
+  .tabsep{width:1px;align-self:stretch;background:var(--line);margin:2px 4px}
   .week{margin-top:14px}
   .week-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:6px}
   .grid{display:grid;gap:4px}
-  .gh{font-size:12px;color:var(--ink-soft);text-align:center;align-self:center;padding:2px 0;font-weight:600}
-  .gp{font-size:11px;color:var(--ink-soft);text-align:right;padding-right:6px;align-self:center}
-  .cell{border:1px dashed var(--line);border-radius:7px;min-height:46px;background:var(--surface-2)}
-  .cell.drop{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface-2))} /* výraznější i na slunci */
-  .cell.over{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--surface-2))}
-  .pcard{border:1px solid var(--line);border-left:4px solid var(--f);border-radius:7px;
-    background:color-mix(in srgb,var(--f) 16%,var(--surface));padding:4px 6px;overflow:hidden;
-    display:flex;flex-direction:column;cursor:grab;position:relative;overflow-wrap:anywhere}
-  .pcard .subj{font-weight:650;font-size:12px;line-height:1.15;padding-right:16px}
+  /* hodiny a dny jako tlumené štítky; prázdná buňka bez čárkování (tišší), čárkovaný rámeček dostane až drop zóna */
+  .gh,.gp{font-size:12px;font-weight:650;text-align:center;align-self:stretch;display:flex;align-items:center;justify-content:center;
+    background:var(--surface-2);border-radius:6px}
+  .gh{color:var(--ink-soft)} .gp{color:var(--ink)}
+  .cell{border:1px solid color-mix(in srgb,var(--line) 60%,var(--surface));border-radius:7px;min-height:46px;background:var(--surface-2)}
+  /* drop zóna = „sem SMÍŠ“ → zelená (barva splněného požadavku); vínová/červená je ve hře konflikt
+     a zóny v ní vypadaly jako zákaz (Jakub, 21. 8. 2026) */
+  .cell.drop{border:1px dashed var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--surface-2))} /* výraznější i na slunci */
+  .cell.over{border-style:solid;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 26%,var(--surface-2))}
+  /* položená kartička musí být na první pohled „věc“ položená NA mřížce, ne další prázdná buňka:
+     sytější výplň oboru, rámeček v barvě oboru a lehký stín (16% tint splýval s volným místem, 21. 8. 2026) */
+  .pcard{border:1px solid color-mix(in srgb,var(--f) 55%,var(--line));border-left:4px solid var(--f);border-radius:7px;
+    background:color-mix(in srgb,var(--f) 30%,var(--surface));padding:4px 6px;overflow:hidden;
+    display:flex;flex-direction:column;cursor:grab;position:relative;overflow-wrap:anywhere;
+    box-shadow:0 1px 2px rgba(0,0,0,.14)}
+  .pcard .sub{color:color-mix(in srgb,var(--ink) 78%,var(--ink-soft))} /* na sytější výplni drž kontrast */
+  .pcard .subj{font-weight:650;font-size:12px;line-height:1.15;padding-right:16px;hyphens:auto}
   .pcard .sub{font-size:10px;color:var(--ink-soft)}
-  .pcard.conflict{border-color:var(--bad);background:var(--bad-bg);box-shadow:inset 0 0 0 1px var(--bad)}
+  /* desktop („na šířku“): údaje ve dvou sloupcích — předmět | učebna, učitel/třída | budova;
+     tři řádky pod sebou se do buňky (a hlavně do pruhu) nevešly */
+  .card .info,.pcard .info{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:6px;align-items:baseline}
+  .info .subj{padding-right:0}
+  .info .r{text-align:right;white-space:nowrap}
+  .pcard .info .r{padding-right:18px} /* místo pro × / 🔒 nahoře a štítek „2h“ dole */
+  /* paleta drží stejnou logiku (předmět | učebna, učitel | budova); navíc nese čip třídy u učitele */
+  .card .sub{font-size:11px;color:var(--ink-soft);margin-top:2px}
+  .card .sub .chip{margin-right:4px}
+  .pcard.conflict{border-color:var(--bad);border-left-color:var(--bad);background:var(--bad-bg);box-shadow:inset 0 0 0 1px var(--bad)}
+  .lanegrp{display:flex;flex-direction:column;gap:3px;min-width:0} /* transponovaný překryv: kartičky pod sebou v jednom bloku */
+  .lanegrp .pcard{min-height:46px}
   .pcard .x{position:absolute;top:2px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
     border-radius:5px;font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line)}
   .pcard .x:hover{color:var(--bad);border-color:var(--bad)}
   /* vícehodinové bloky: čárky na hranicích hodin + štítek délky — ať je dvojhodinovka poznat na první pohled */
-  .pcard .tick{position:absolute;pointer-events:none;opacity:.5}
-  .pcard .tick.h{top:3px;bottom:3px;width:0;border-left:1px dashed var(--ink-soft)}
-  .pcard .tick.v{left:3px;right:3px;height:0;border-top:1px dashed var(--ink-soft)}
+  /* hranice hodin jen jako zářezy na okrajích — čárkovaná linka přes celý blok dělala z dvouhodinovky dvě buňky */
+  .pcard .tick{position:absolute;pointer-events:none;opacity:.7}
+  .pcard .tick.h{top:0;bottom:0;width:2px;margin-left:-1px;
+    background:linear-gradient(var(--f) 0 7px,transparent 7px calc(100% - 7px),var(--f) calc(100% - 7px))}
+  .pcard .tick.v{left:0;right:0;height:2px;margin-top:-1px;
+    background:linear-gradient(90deg,var(--f) 0 7px,transparent 7px calc(100% - 7px),var(--f) calc(100% - 7px))}
   .pcard .durb{position:absolute;bottom:2px;right:3px;font-size:9px;line-height:1.3;color:var(--ink-soft);
     background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 3px}
 
@@ -145,8 +233,13 @@ try{
   /* ---------- POŽADAVKY ---------- */
   .score{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
   .score b{font-size:26px}
+  .score b .of{font-size:16px;font-weight:500;color:var(--ink-soft)}
   .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:4px 0 12px}
   .bar>div{height:100%;background:var(--ok);transition:width .25s}
+  .segbar{display:flex;gap:4px;margin:4px 0 12px} /* jeden dílek = jeden požadavek */
+  .segbar>i{flex:1;height:8px;border-radius:99px;background:var(--line)} .segbar>i.met{background:var(--ok)}
+  .gsum .segbar{margin:0;width:90px} .gsum .segbar>i{height:6px}
+  .conf-line.bad{display:flex;gap:8px;align-items:flex-start} .conf-line .why{font-size:12px;margin-top:2px;font-weight:400}
   .goal{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line)}
   .goal:first-child{border-top:0}
   .dot{flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-soft);margin-top:1px;
@@ -157,17 +250,22 @@ try{
   .conf-line{margin:10px 0 4px;padding:8px 10px;border-radius:8px;font-size:13px}
   .conf-line.bad{background:var(--bad-bg);color:var(--bad)}
   .conf-line.ok{background:var(--ok-bg);color:var(--ok)}
-  .win{margin-top:12px;padding:12px;border-radius:8px;background:var(--ok-bg);color:var(--ok);font-weight:650;text-align:center}
+  .win{margin-top:12px;padding:12px;border-radius:8px;background:var(--ok-bg);color:var(--ok);font-weight:650;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+  .win .next{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:650} /* jediné zvýrazněné tlačítko ve hře: postup dál */
 
   /* ---------- LIŠTA / STAV ---------- */
   .toolbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
     display:flex;gap:10px;align-items:center;padding:9px 18px;z-index:30;flex-wrap:wrap}
-  .status{font-size:13px;color:var(--ink-soft);min-height:18px}
+  .status{font-size:13px;color:var(--ink-soft);min-height:18px;display:flex;gap:8px;align-items:center}
+  .sdot{width:8px;height:8px;border-radius:50%;background:var(--line);flex-shrink:0}
+  .sdot.bad{background:var(--bad)} .sdot.ok{background:var(--ok)}
+  .toolbar button{display:inline-flex;align-items:center;gap:6px}
 
   /* ---------- MODAL ---------- */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
   .modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
-    padding:18px;max-width:460px;width:calc(100% - 36px)}
+    padding:18px;max-width:460px;width:calc(100% - 36px);
+    max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:auto} /* na telefonu nesmí utéct tlačítka za okraj */
   .modal h3{margin-bottom:8px}
   .modal p{margin:0 0 14px;color:var(--ink-soft);font-size:14px}
   .modal .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
@@ -175,28 +273,51 @@ try{
     border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
   .slot-row{display:flex;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
   .slot-row .name{flex:1;font-size:13px}
-  .legend{font-size:11px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .legend{font-size:11px;color:var(--ink-soft);display:flex;flex-direction:column;gap:4px;margin-top:10px} /* plné názvy → pod sebou */
   .legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin-right:4px}
+  /* úzký displej — přepisy obecných pravidel výš (musí být až za nimi) */
+  @media(max-width:819px){
+    .card{width:min(100%,calc(96px + var(--dur,1) * 57px))} /* 1h 153 px → dvě vedle sebe na 390 px */
+    .toolbar .lbl-s{display:inline}
+    #colGoals .gsum{display:flex}
+    #colGoals .gcaret{display:inline}
+    #colSchedule .col-body{padding:10px 8px} /* každý pixel šířky jde do pěti sloupců dnů */
+    .pcard{padding:3px 3px 3px 4px}
+    .pcard .sub:last-child{display:none}
+    .pcard .subj{font-size:10.5px;padding-right:0}
+    .pcard .x{display:none} /* místo × se kartička vrací tažením (nebo ťuknutím) na zásobník */
+    .pcard .durb{display:none}
+    .grid{gap:3px}
+    .legend{margin-top:0}
+  }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><b>Skládání rozvrhu</b><span id="lvlDesc">—</span></div>
-  <div class="spacer"></div>
+  <b class="title">Skládání rozvrhu</b>
+  <div class="lvl">
+    <select id="levelSel" class="lvlsel" title="Level" aria-label="Level"></select>
+    <span class="badge" id="placedBadge">—</span>
+  </div>
+  <span id="lvlDesc">—</span>
   <div class="ctrls">
-    <label class="muted" style="font-size:12px">Level</label>
-    <select id="levelSel"></select>
-    <button id="editBtn" class="ghost" title="Vytvořit / upravit vlastní level">Editor</button>
-    <button id="saveBtn" class="ghost">Uložit / Načíst</button>
-    <button id="aboutBtn" class="ghost" title="O hře">ⓘ</button>
-    <button id="themeBtn" class="ghost" title="Světlý / tmavý režim">◐</button>
+    <button id="moreBtn" class="ghost" aria-expanded="false" aria-controls="moreMenu">Více ▾</button>
+    <div class="more" id="moreMenu">
+      <button id="editBtn" class="ghost" title="Vytvořit / upravit vlastní level">Editor</button>
+      <button id="saveBtn" class="ghost">Uložit / Načíst</button>
+    </div>
+    <div class="btngroup">
+      <button id="aboutBtn" class="ghost" title="O hře" aria-label="O hře"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".8" fill="currentColor"/></svg></button>
+      <button id="themeBtn" class="ghost" title="Světlý / tmavý režim" aria-label="Světlý / tmavý režim"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></button>
+    </div>
   </div>
 </header>
 
 <div class="wrap">
   <section class="col" id="colPalette">
-    <div class="col-head"><h2>Kartičky</h2></div>
+    <div class="col-head"><h2>Kartičky</h2><span class="muted" id="palCount"></span></div>
     <div class="col-body"><div class="palette" id="palette"></div></div>
+    <div class="col-foot legend" id="legend"></div>
   </section>
 
   <section class="col" id="colSchedule">
@@ -205,19 +326,21 @@ try{
   </section>
 
   <section class="col" id="colGoals">
-    <div class="col-head"><h2>Požadavky</h2></div>
+    <div class="col-head" id="goalsHead"><h2>Požadavky</h2><div class="gsum" id="goalsSummary"></div><span class="gcaret" aria-hidden="true">▴</span></div>
     <div class="col-body" id="goals"></div>
   </section>
 </div>
 
-<div class="toolbar">
-  <button id="undoBtn" title="Zpět (Ctrl+Z)" disabled>↶ Zpět</button>
-  <button id="redoBtn" title="Znovu (Ctrl+Y)" disabled>↷ Znovu</button>
-  <button id="clearBtn">Smazat rozvrh</button>
-  <button id="randomBtn" class="primary">Náhodně rozmístit</button>
-  <button id="checkBtn" class="ghost" title="Zkontrolovat, zda je level vůbec řešitelný">Řešitelnost?</button>
+<div class="toolbar" id="toolbar">
+  <div class="btngroup">
+    <button id="undoBtn" title="Zpět (Ctrl+Z)" aria-label="Zpět" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button id="redoBtn" title="Znovu (Ctrl+Y)" aria-label="Znovu" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+  </div>
+  <button id="clearBtn" title="Smazat rozvrh" aria-label="Smazat rozvrh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg><span class="lbl">Smazat rozvrh</span></button>
+  <button id="randomBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg><span class="lbl">Náhodně rozmístit</span><span class="lbl-s">Náhodně</span></button>
+  <button id="checkBtn" class="ghost" title="Vzorkuje náhodné rozvrhy a měří, jak často padne výhra"><span class="lbl">Jde to vůbec vyhrát?</span><span class="lbl-s">Jde to?</span></button>
   <div class="spacer" style="flex:1"></div>
-  <div class="status" id="status">Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).</div>
+  <div class="status" id="status"><span class="sdot" id="statusDot"></span><span id="statusText">Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).</span></div>
 </div>
 
 <script>
@@ -235,7 +358,7 @@ const DAYS=["Po","Út","St","Čt","Pá"];
 
 const LEVELS=[
   {
-    id:"l1", name:"1 · Rozjezd",
+    id:"l1", name:"0 · Rozjezd",
     desc:"Jedna třída, jeden týden. Rozehřívačka — tělocvik ve školní tělocvičně na Horské.",
     weeks:["Lichý"], periods:6,
     cards:[
@@ -243,7 +366,7 @@ const LEVELS=[
       {id:"b", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
       {id:"c", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T3", building:"Š101", duration:1},
       {id:"d", class:"1.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T5", building:"Š101", duration:1},
-      {id:"e", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"G7", building:"H59", duration:2},
+      {id:"e", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"H1", building:"H59", duration:2},
       {id:"f", class:"1.IT", subject:"Web", field:"IT", teacher:"Eva", room:"T12", building:"Š101", duration:1},
       {id:"ob1", class:"1.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
     ],
@@ -256,25 +379,25 @@ const LEVELS=[
     ]
   },
   {
-    id:"l2", name:"2 · První ročníky",
+    id:"l2", name:"1 · První ročníky",
     desc:"Celý první ročník — čtyři obory naráz. Dělí se o Renatu, Tomáše i tělocvičnu na Horské.",
     weeks:["Lichý"], periods:6,
     cards:[
       {id:"c0", class:"1.IT", subject:"Programování", field:"IT", teacher:"Petr", room:"T12", building:"Š101", duration:2},
       {id:"c1", class:"1.IT", subject:"Matematika", field:"IT", teacher:"Renata", room:"T5", building:"Š101", duration:1},
       {id:"c2", class:"1.IT", subject:"Angličtina", field:"IT", teacher:"Jitka", room:"T3", building:"Š101", duration:1},
-      {id:"c3", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"c3", class:"1.IT", subject:"Tělocvik", field:"IT", teacher:"Tomáš", room:"H1", building:"H59", duration:1},
       {id:"c4", class:"1.IT", subject:"Databáze", field:"IT", teacher:"Eva", room:"T14", building:"Š101", duration:1},
       {id:"c5", class:"1.EP", subject:"Číslicová technika", field:"EP", teacher:"Jaroslav", room:"G1", building:"H59", duration:2},
       {id:"c6", class:"1.EP", subject:"Matematika", field:"EP", teacher:"Renata", room:"T5", building:"Š101", duration:1},
-      {id:"c7", class:"1.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"c7", class:"1.EP", subject:"Tělocvik", field:"EP", teacher:"Tomáš", room:"H1", building:"H59", duration:1},
       {id:"c8", class:"1.EP", subject:"Hardware", field:"EP", teacher:"Jan", room:"T9", building:"Š101", duration:1},
       {id:"c9", class:"1.S", subject:"Elektronika", field:"ELE", teacher:"Jan", room:"E2", building:"H59", duration:2},
       {id:"ca", class:"1.S", subject:"Matematika", field:"ELE", teacher:"Renata", room:"G4", building:"H59", duration:1},
-      {id:"cb", class:"1.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"cb", class:"1.S", subject:"Tělocvik", field:"ELE", teacher:"Tomáš", room:"H1", building:"H59", duration:1},
       {id:"cc", class:"1.ST", subject:"Praxe", field:"STR", teacher:"Martin", room:"B8", building:"H618", duration:2},
       {id:"cd", class:"1.ST", subject:"Matematika", field:"STR", teacher:"Renata", room:"B7", building:"H618", duration:1},
-      {id:"ce", class:"1.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"G7", building:"H59", duration:1},
+      {id:"ce", class:"1.ST", subject:"Tělocvik", field:"STR", teacher:"Tomáš", room:"H1", building:"H59", duration:1},
       {id:"cf", class:"1.IT", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
       {id:"cg", class:"1.EP", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
       {id:"ch", class:"1.S", subject:"Oběd", field:"BRK", teacher:"—", room:"Jídelna", building:"Jídelna", duration:1, kind:"break"},
@@ -289,7 +412,7 @@ const LEVELS=[
     ]
   },
   {
-    id:"l3", name:"3 · Druhé ročníky",
+    id:"l3", name:"2 · Druhé ročníky",
     desc:"Lichý a sudý týden. Tělocvik se stěhuje na půjčené tělocvičny ZŠ a Jan přebíhá mezi Horskou a Školní — hlídej přechody.",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
@@ -328,7 +451,7 @@ const LEVELS=[
     ]
   },
   {
-    id:"l4", name:"4 · Třetí ročníky",
+    id:"l4", name:"3 · Třetí ročníky",
     desc:"Celý třetí ročník ve třech budovách a třech půjčených tělocvičnách. Renata učí matematiku všude — hlídej přechody.",
     weeks:["Lichý"], periods:6,
     cards:[
@@ -364,8 +487,8 @@ const LEVELS=[
     ]
   },
   {
-    id:"l5", name:"5 · Iron-man: dostavba",
-    desc:"Rozvrh z levelu 4 už platí (zamčené kartičky 🔒) — dostav nové hodiny kolem něj. Hraješ-li iron-man, přenese se tvoje pozice ze 4; jinak vzorové řešení.",
+    id:"l5", name:"4 · Iron-man: dostavba",
+    desc:"Rozvrh z levelu 3 už platí (zamčené kartičky 🔒) — dostav nové hodiny kolem něj. Hraješ-li iron-man, přenese se tvoje pozice ze 3; jinak vzorové řešení.",
     weeks:["Lichý"], periods:6,
     carryFrom:"l4", // iron-man: autosave l4 nahradí výchozí given níž
     cards:[
@@ -416,7 +539,7 @@ const LEVELS=[
     ]
   },
   {
-    id:"l6", name:"6 · Čtvrté ročníky",
+    id:"l6", name:"5 · Maturitní ročníky",
     desc:"Čtyři obory, tři budovy, půjčené tělocvičny, dva týdny a požadavky, které vypadají neřešitelně. (Nejsou. Asi.)",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
@@ -457,7 +580,7 @@ const LEVELS=[
     ]
   },
   {
-    id:"l7", name:"7 · Celá škola",
+    id:"l7", name:"6 · Celá škola",
     desc:"Šestnáct tříd, čtyři obory, všechny ročníky. Požadavků je míň než v Praseti — zato se musí sejít celá škola najednou.",
     weeks:["Lichý","Sudý"], periods:6,
     cards:[
@@ -610,7 +733,8 @@ function entitiesOf(view){ return view==="teacher"?teachersOf():view==="room"?ro
 function entityOf(c,view){ return view==="teacher"?c.teacher:view==="room"?c.room:c.class; }
 // Obory: IT = Informatika a management, EP = elektronické počítače,
 // ELE = slaboproudá elektrotechnika, STR = strojírenství.
-const FIELD_NAMES={IT:"Informatika",EP:"Počítače",ELE:"Elektro",STR:"Strojírenství"};
+// legenda: zkratka jako na čipu třídy + plný název oboru (holé „Informatika“/„Počítače“ bylo nejasné, Jakub 21. 8. 2026)
+const FIELD_NAMES={IT:"IT — informatika a management",EP:"EP — elektronické počítače",ELE:"S — slaboproudá elektrotechnika",STR:"ST — strojírenství"};
 function fieldVar(f){ return f==="ELE"?"var(--ele)":f==="STR"?"var(--str)":f==="IT"?"var(--it)":f==="EP"?"var(--ep)":"var(--gen)"; }
 
 /* =====================================================================
@@ -779,12 +903,17 @@ function startSlots(c){
     if(fits(c,p)) out.push({w,d,p});
   return out;
 }
-function fillOnce(fixed,budget){ // jeden pokus: vrací kompletní, nebo nejlepší částečné placements
+let FILL_TIMED_OUT=false; // poslední fillOnce narazil na časový limit (neřešitelný / přeplněný level)
+function fillOnce(fixed,budget,ms){ // jeden pokus: vrací kompletní, nebo nejlepší částečné placements
+  // strop uzlů NESTAČÍ: na přeplněném levelu z editoru stál jeden uzel tolik, že 200 000 uzlů
+  // zamrazilo prohlížeč na minutu — proto i časový box (ms)
+  const deadline=performance.now()+(ms||1500); FILL_TIMED_OUT=false;
   const todo=shuffle(LVL.cards.filter(c=>!fixed[c.id]).map(c=>c.id))
     .sort((a,b)=>card(b).duration-card(a).duration); // stabilní sort: delší bloky dřív, uvnitř náhodně
   let best={...fixed}, bestN=Object.keys(fixed).length;
   function bt(i,acc){
     if(budget--<=0) return null;
+    if((budget&63)===0 && performance.now()>deadline){ budget=0; FILL_TIMED_OUT=true; return null; }
     if(Object.keys(acc).length>bestN){ bestN=Object.keys(acc).length; best={...acc}; }
     if(i>=todo.length) return {...acc};
     const c=card(todo[i]);
@@ -833,12 +962,13 @@ function blockNote(pl){ // proč se zbylé kartičky nevešly (dominantní tvrd�
 }
 function randomFill(smart){
   const fixed={...S.placements};
-  let result=fillOnce(fixed,200000), goalNote="";
+  let result=fillOnce(fixed,200000,1500), goalNote="";
+  const timedOut=FILL_TIMED_OUT;
   if(smart){ // víc pokusů v časovém boxu, vyber podle (cíle, počet umístěných)
     let bestScore=goalsMetIn(result)*1000+Object.keys(result).length;
     const t0=performance.now();
     while(performance.now()-t0<700){
-      const r=fillOnce(fixed,20000);
+      const r=fillOnce(fixed,20000,150);
       const sc=goalsMetIn(r)*1000+Object.keys(r).length;
       if(sc>bestScore){ bestScore=sc; result=r; }
     }
@@ -850,7 +980,7 @@ function randomFill(smart){
   const n=Object.keys(S.placements).length, tot=LVL.cards.length;
   render();
   setStatus(n===tot ? "Náhodně rozmístěno všech "+tot+" kartiček (bez tvrdých konfliktů)."+goalNote
-                    : "Rozmístěno "+n+" z "+tot+" — "+blockNote(result));
+                    : "Rozmístěno "+n+" z "+tot+" — "+blockNote(result)+(timedOut?" Řešič vyčerpal časový limit — level je možná neřešitelný.":""));
   autosave();
 }
 
@@ -932,13 +1062,21 @@ function dropSelection(){ // přepnutí záložky/pohledu ruší výběr — kar
   restoreLifted(); S.selected=null;
   setStatus(back?"Výběr zrušen — kartička je zpět na svém místě.":"Výběr zrušen.");
 }
+// Do kterého rozvrhu kartička patří v AKTUÁLNÍM pohledu (třída / učitel / učebna). Pauza nemá
+// učitele ani učebnu, takže v pohledech Učitelé/Učebny nepatří nikam → přepne se na Třídy.
+function homeOf(c){
+  const e=entityOf(c,S.view);
+  return entitiesOf(S.view).includes(e) ? {view:S.view,active:e} : {view:"class",active:c.class};
+}
+function focusHome(c){ const h=homeOf(c); S.view=h.view; S.active=h.active; }
+function belongsHere(c){ return entityOf(c,S.view)===S.active; }
 function pickUp(id){
   if(S.locked.has(id)){ setStatus("Tahle kartička je zamčená — je daná levelem."); return; }
   restoreLifted(); // výběr jiné kartičky vrací tu předchozí zvednutou zpět
   S.selected=id;
-  S.view="class"; S.active=card(id).class; // umisťovat se dá jen v pohledu po třídách
+  focusHome(card(id)); // rozvrh, kam kartička patří — ve STEJNÉM pohledu (v Učitelích zůstáváme u učitele, Jakub 21. 8. 2026)
   if(S.placements[id]){ S.pickedFrom=S.placements[id]; delete S.placements[id]; } // zvednutí z rozvrhu
-  setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu třídy "+card(id).class+".");
+  setStatus("Kartička „"+card(id).subject+" "+card(id).class+"“ vybraná — klikni do rozvrhu „"+S.active+"“"+(S.pickedFrom?", nebo na zásobník (vrátí ji).":"."));
   render();
 }
 function unplace(id){ if(S.locked.has(id)) return; pushHist(); delete S.placements[id]; S.assisted=false; if(S.selected===id){S.selected=null;S.pickedFrom=null;} render(); autosave(); }
@@ -949,10 +1087,11 @@ function tryPlace(id,w,d,p){
   if(!fits(c,p)){ setStatus(isBreak(c)
     ? "Oběd je nařízená pauza — smí být jen "+breakWindow()[0]+".–"+breakWindow()[1]+". hodinu."
     : "Sem se "+c.duration+"h blok nevejde — vyber dřívější hodinu."); return; }
-  // vrácení kartičky na totéž místo není krok historie
-  if(!(S.selected===id && S.pickedFrom && S.pickedFrom.w===w && S.pickedFrom.d===d && S.pickedFrom.p===p)) pushHist();
+  // vrácení kartičky na totéž místo není krok historie — a ani ruční zásah, který by shodil příznak
+  // „poskládal řešič“ (jinak stačilo zvednout a pustit na místě a ✓ byl zadarmo)
+  const same=S.selected===id && S.pickedFrom && S.pickedFrom.w===w && S.pickedFrom.d===d && S.pickedFrom.p===p;
+  if(!same){ pushHist(); S.assisted=false; } // skutečný tah — deska je zase hráčova
   S.placements[id]={w,d,p};
-  S.assisted=false; // ruční zásah — deska je zase hráčova
   if(S.selected===id){ S.selected=null; S.pickedFrom=null; } // pickedFrom patří vybrané kartě — cizí nemazat
   setStatus("Umístěno. Konflikty jsou červené, splněné požadavky vpravo.");
   render(); autosave();
@@ -966,6 +1105,7 @@ function clearAll(){
 
 let statusEl;
 function setStatus(t){ if(statusEl) statusEl.textContent=t; }
+function setStatusDot(cls){ const d=document.getElementById("statusDot"); if(d) d.className="sdot"+(cls?" "+cls:""); }
 
 /* =====================================================================
    HISTORIE — undo/redo přes snapshoty placements (per-level, jen session).
@@ -1011,7 +1151,7 @@ function updateUndoBtns(){
    document.body, aby přežil odstranění zdrojového elementu z DOM.
    ===================================================================== */
 const DRAG={ptr:null,id:null,from:null,el:null,ghost:null,ox:0,oy:0,sx:0,sy:0,lx:0,ly:0,
-  armed:false,dragging:false,touch:false,timer:0,overCell:null,justDropped:false};
+  armed:false,dragging:false,touch:false,timer:0,overCell:null,overPal:false,justDropped:false};
 
 function armDrag(ev,id,fromPl){
   if(DRAG.armed||DRAG.dragging||!ev.isPrimary||ev.button!==0) return;
@@ -1033,7 +1173,7 @@ function startDrag(){
   try{document.body.setPointerCapture(DRAG.ptr)}catch(e){} // implicitní touch capture by zmizel s re-renderem zdroje
   const c=card(DRAG.id);
   if(S.selected!==DRAG.id) restoreLifted(); // jiná zvednutá karta se vrací — její pickedFrom se nesmí „přilepit“ k tažené
-  S.selected=DRAG.id; S.view="class"; S.active=c.class;
+  S.selected=DRAG.id; focusHome(c);
   if(DRAG.from){ S.pickedFrom=DRAG.from; delete S.placements[DRAG.id]; }
   const src=DRAG.el, r=src.getBoundingClientRect(), g=src.cloneNode(true);
   const x=g.querySelector(".x"); if(x) x.remove();
@@ -1054,15 +1194,18 @@ function positionGhost(){ if(DRAG.ghost) DRAG.ghost.style.transform="translate("
 function hitTest(x,y){
   // elementsFromPoint (celý stack): buňka může být zakrytá už položenou kartičkou
   // a drop na ni má vytvořit překryv (konflikt se zvýrazní, nezakazuje se)
-  let cell=null;
+  let cell=null, pal=false;
   for(const t of document.elementsFromPoint(x,y)){
     const c=t.closest?t.closest(".cell.drop"):null;
     if(c){ cell=c; break; }
+    if(t.closest&&t.closest("#colPalette")){ pal=true; break; }
     if(t===document.body) break;
   }
   if(DRAG.overCell&&DRAG.overCell!==cell) DRAG.overCell.classList.remove("over");
   if(cell) cell.classList.add("over");
   DRAG.overCell=cell;
+  DRAG.overPal=pal&&!!DRAG.from; // zásobník je cíl jen pro kartičku zvednutou z rozvrhu (= odebrání)
+  document.getElementById("colPalette").classList.toggle("over",DRAG.overPal);
 }
 function autoScrollLoop(){ // tažení k okraji viewportu / boxu rozvrhu posouvá obsah
   if(!DRAG.dragging) return;
@@ -1072,6 +1215,11 @@ function autoScrollLoop(){ // tažení k okraji viewportu / boxu rozvrhu posouv�
   const sc=document.getElementById("schedule"), r=sc.getBoundingClientRect();
   if(x>r.left&&x<r.left+M){ sc.scrollLeft-=Math.ceil((r.left+M-x)/6); moved=true; }
   else if(x<r.right&&x>r.right-M){ sc.scrollLeft+=Math.ceil((x-r.right+M)/6); moved=true; }
+  const pb=document.querySelector("#colPalette .col-body"), pr=pb.getBoundingClientRect(); // přilepený zásobník scrolluje uvnitř
+  if(x>pr.left&&x<pr.right&&pb.scrollHeight>pb.clientHeight){
+    if(y>pr.top&&y<pr.top+M){ pb.scrollTop-=Math.ceil((pr.top+M-y)/6); moved=true; }
+    else if(y<pr.bottom&&y>pr.bottom-M){ pb.scrollTop+=Math.ceil((y-pr.bottom+M)/6); moved=true; }
+  }
   if(moved) hitTest(x,y); // obsah pod nehybným prstem se posunul
   requestAnimationFrame(autoScrollLoop);
 }
@@ -1088,9 +1236,10 @@ function dragUp(ev){
   if(ev.pointerId!==DRAG.ptr) return;
   if(!DRAG.dragging){ disarmDrag(); return; } // krátký klik/tap — nech proběhnout click
   hitTest(ev.clientX,ev.clientY);
-  const id=DRAG.id, cell=DRAG.overCell;
+  const id=DRAG.id, cell=DRAG.overCell, toPal=DRAG.overPal;
   dragCleanup();
   if(cell) tryPlace(id,+cell.dataset.w,+cell.dataset.d,+cell.dataset.p);
+  else if(toPal) returnToPalette();
   else dropNowhere();
 }
 function dragCancel(ev){ if(ev.pointerId!==DRAG.ptr) return; cancelDrag(); }
@@ -1108,6 +1257,7 @@ function dragCleanup(){
   try{document.body.releasePointerCapture(DRAG.ptr)}catch(e){}
   if(DRAG.ghost){ DRAG.ghost.remove(); DRAG.ghost=null; }
   if(DRAG.overCell){ DRAG.overCell.classList.remove("over"); DRAG.overCell=null; }
+  DRAG.overPal=false; document.getElementById("colPalette").classList.remove("over");
   document.documentElement.classList.remove("dragging");
   document.removeEventListener("touchmove",blockTouchScroll);
   document.removeEventListener("contextmenu",blockEvt);
@@ -1134,7 +1284,8 @@ function el(tag,props,...kids){
   for(const k in props){
     const v=props[k];
     if(k==="class")e.className=v;
-    else if(k==="style"&&typeof v==="object")Object.assign(e.style,v);
+    else if(k==="style"&&typeof v==="object") // custom property (--f) jde jen přes setProperty — Object.assign ji tiše zahodí
+      for(const sk in v){ if(sk.indexOf("--")===0) e.style.setProperty(sk,v[sk]); else e.style[sk]=v[sk]; }
     else if(k.slice(0,2)==="on"&&typeof v==="function")e.addEventListener(k.slice(2).toLowerCase(),v);
     else if(v!=null&&v!==false)e.setAttribute(k,v);
   }
@@ -1147,56 +1298,104 @@ function render(){
   if(!ents.includes(S.active)) S.active=ents[0];
   const conflicts=computeConflicts(); // jednou pro rozvrh i panel požadavků
   renderPalette(); renderTabs(); renderSchedule(conflicts); renderGoals(conflicts);
-  updateUndoBtns();
+  updateUndoBtns(); updateDock();
+}
+// fixní lišta (+ na mobilu sbalené požadavky nad ní) = „dok“; obsah dostane rezervu podle jeho skutečné výšky
+function updateDock(){
+  const tb=document.getElementById("toolbar"), g=document.getElementById("colGoals");
+  if(!tb) return;
+  const tbh=tb.offsetHeight, narrow=!isHorizontal();
+  const gh=narrow&&g?g.offsetHeight+8:0;
+  document.documentElement.style.setProperty("--tb-h",tbh+"px");
+  document.documentElement.style.setProperty("--dock-h",(tbh+gh)+"px");
 }
 
-function renderPalette(){
-  const box=document.getElementById("palette"); box.textContent="";
-  const unplaced=LVL.cards.filter(c=>!S.placements[c.id]);
-  if(!unplaced.length){ box.append(el("div",{class:"palette-empty"},"Všechny kartičky jsou v rozvrhu.")); return; }
-  unplaced.forEach(c=>{
-    const d=el("div",{
+function plural(n,one,few,many){ return n+" "+(n===1?one:n<5?few:many); }
+function cardEl(c){
+    return el("div",{
       class:"card dur"+c.duration+(isBreak(c)?" brk":"")+(S.selected===c.id?" sel":"")
         +(DRAG.dragging&&S.selected===c.id?" drag-src":""),
-      "data-dur":c.duration+"h",
-      style:{"--f":fieldVar(c.field)},
+      style:{"--f":fieldVar(c.field),"--dur":c.duration},
       onclick:()=>pickUp(c.id),
       onpointerdown:ev=>armDrag(ev,c.id,null)
     },
-      el("div",{class:"subj"},c.subject),
+      Array.from({length:c.duration-1},(_,k)=>el("div",{class:"tick",style:{left:((k+1)/c.duration*100)+"%"}})),
       isBreak(c)
-        ? el("div",{class:"meta"},
-            el("span",{class:"chip"},c.class),
-            el("span",{},"nařízená pauza — "+breakWindow()[0]+".–"+breakWindow()[1]+". hodina"))
-        : el("div",{class:"meta"},
-            el("span",{class:"chip"},c.class),
-            el("span",{},c.teacher),
-            el("span",{},c.room),
-            el("span",{class:"chip"},c.building)
+        ? el("div",{class:"info"}, // pauza: místo učebny okno, místo učitele „nařízená pauza“
+            el("div",{class:"subj"},c.subject),                   el("div",{class:"sub r"},breakWindow()[0]+".–"+breakWindow()[1]+". h"),
+            el("div",{class:"sub"},el("span",{class:"chip"},c.class)), el("div",{class:"sub r"},"nařízená pauza")) // do 1h šířky: bez „Jídelna“ (říká totéž co „Oběd“), krátké okno
+        : el("div",{class:"info"}, // stejná mřížka jako kartička v rozvrhu; třída navíc jako čip u učitele
+            el("div",{class:"subj"},c.subject),                                 el("div",{class:"sub r"},c.room),
+            el("div",{class:"sub"},el("span",{class:"chip"},c.class),c.teacher), el("div",{class:"sub r"},c.building)
           )
     );
-    box.append(d);
+}
+function renderPalette(){
+  const box=document.getElementById("palette"); box.textContent="";
+  const unplaced=LVL.cards.filter(c=>!S.placements[c.id]);
+  const cnt=document.getElementById("palCount"); if(cnt) cnt.textContent=unplaced.length?plural(unplaced.length,"zbývá","zbývají","zbývá"):"";
+  // legenda oborů patří k paletě — vysvětluje barvy kartiček
+  const lg=document.getElementById("legend"); if(lg){ lg.textContent="";
+    [...new Set(teaching().map(c=>c.field))].forEach(f=>lg.append(el("span",{},el("span",{class:"sw",style:{background:fieldVar(f)}}),FIELD_NAMES[f]||f))); }
+  if(!unplaced.length){ box.append(el("div",{class:"palette-empty"},"Všechny kartičky jsou v rozvrhu.")); return; }
+  // skupiny po třídách: aktivní třída první a plná, ostatní tlumené (v l7 je 16 tříd — jinak se nedá zorientovat);
+  // skupiny podle entity AKTUÁLNÍHO pohledu (třída / učitel / učebna): skupina zobrazeného rozvrhu první
+  // a plná, ostatní tlumené — klik na tlumenou kartičku přepne rozvrh na její skupinu ve stejném pohledu.
+  // Ve sloupcích pod sebou (≤ 1100 px: paleta stojí NAD rozvrhem) jen aktivní skupina, zbytek počtem.
+  const narrow=window.matchMedia("(max-width:1100px)").matches;
+  const key=c=>homeOf(c).view===S.view ? entityOf(c,S.view) : null; // null = pauza mimo pohled Třídy
+  const order=entitiesOf(S.view).filter(e=>unplaced.some(c=>key(c)===e));
+  if(order.includes(S.active)){ order.splice(order.indexOf(S.active),1); order.unshift(S.active); }
+  const breaksOut=unplaced.filter(c=>key(c)===null);
+  const what=S.view==="teacher"?"učitelé":S.view==="room"?"učebny":"třídy";
+  let hidden=0;
+  order.forEach(e=>{
+    const cards=unplaced.filter(c=>key(c)===e);
+    const dim=e!==S.active;
+    if(narrow&&dim){ hidden+=cards.length; return; }
+    const head=[el("b",{},e),el("span",{class:"muted"},plural(cards.length,"kartička","kartičky","kartiček")),el("span",{class:"ln"})];
+    if(S.view==="class") head.unshift(el("span",{class:"sw",style:{background:fieldVar((cards.find(c=>!isBreak(c))||cards[0]).field)}}));
+    box.append(el("div",{class:"pgroup"+(dim?" dim":""),title:dim?"Klikni na kartičku — přepne rozvrh na „"+e+"“":null},
+      el("div",{class:"pg-head"},head),
+      el("div",{class:"pg-cards"},cards.map(cardEl))
+    ));
   });
+  if(breaksOut.length&&!narrow) box.append(el("div",{class:"pgroup dim",title:"Oběd se pokládá v pohledu Třídy — klik tam přepne"},
+    el("div",{class:"pg-head"},el("b",{},"Oběd"),el("span",{class:"muted"},"jen v pohledu Třídy"),el("span",{class:"ln"})),
+    el("div",{class:"pg-cards"},breaksOut.map(cardEl))));
+  else hidden+=breaksOut.length;
+  if(hidden) box.append(el("div",{class:"palette-note"},"Ostatní "+what+": "+plural(hidden,"kartička","kartičky","kartiček")+" — přepni záložku."));
+}
+// kartička zvednutá z rozvrhu se vrací do zásobníku ťuknutím na něj nebo tažením na něj (na mobilu není ×)
+function returnToPalette(){
+  if(!(S.selected&&S.pickedFrom)) return;
+  const c=card(S.selected);
+  pushHist(); S.pickedFrom=null; S.selected=null; S.assisted=false; render(); autosave();
+  setStatus("Kartička „"+c.subject+" "+c.class+"“ je zpět v zásobníku.");
 }
 
 function renderTabs(){
   const box=document.getElementById("tabs"); box.textContent="";
   // přepínač dimenze pohledu: třídy (hraní) / učitelé / učebny (jen čtení)
   const views=[["class","Třídy"],["teacher","Učitelé"],["room","Učebny"]];
+  const seg=el("div",{class:"seg",role:"group","aria-label":"Pohled"});
   views.forEach(([v,lbl])=>{
-    box.append(el("button",{class:"tab view"+(v===S.view?" active":""),
+    seg.append(el("button",{class:"tab view"+(v===S.view?" active":""),"aria-pressed":v===S.view?"true":"false",
       onclick:()=>{ const a=entitiesOf(v)[0];
-        if(S.selected&&(v!=="class"||a!==card(S.selected).class)) dropSelection();
+        if(S.selected&&entityOf(card(S.selected),v)!==a) dropSelection();
         S.view=v; S.active=a; render(); }},lbl));
   });
+  box.append(seg);
   box.append(el("div",{class:"tabsep"}));
-  // záložky entit v aktuální dimenzi
-  entitiesOf(S.view).forEach(e=>{
-    box.append(el("button",{class:"tab"+(e===S.active?" active":""),
-      onclick:()=>{ if(S.selected&&(S.view!=="class"||e!==card(S.selected).class)) dropSelection();
-        S.active=e; render(); }},e));
+  // záložky entit v aktuální dimenzi; na úzkém displeji rozbalovací pilulka (16 tříd v l7 se jinak nevejde)
+  const pick=e=>{ if(S.selected&&entityOf(card(S.selected),S.view)!==e) dropSelection(); S.active=e; render(); };
+  if(!isHorizontal()){
+    const sel=el("select",{class:"tab tabsel active",onchange:ev=>pick(ev.target.value)});
+    entitiesOf(S.view).forEach(e=>sel.append(el("option",{value:e},e)));
+    sel.value=S.active; box.append(sel);
+  }else entitiesOf(S.view).forEach(e=>{
+    box.append(el("button",{class:"tab"+(e===S.active?" active":""),onclick:()=>pick(e)},e));
   });
-  if(S.view!=="class") box.append(el("span",{class:"ro-note"},"jen pro čtení"));
 }
 
 // Desktop ("na šířku"): dny v řádcích, hodiny ve sloupcích.
@@ -1206,7 +1405,8 @@ function isHorizontal(){ return window.matchMedia("(min-width:820px)").matches; 
 function renderSchedule(reasons){
   const box=document.getElementById("schedule"); box.textContent="";
   const horiz=isHorizontal();
-  const playing=S.view==="class"; // jen v pohledu po třídách se umisťuje
+  // hraje se ve všech třech pohledech: kartička jde položit jen do rozvrhu, který je vidět, a jen když
+  // do něj patří (`belongsHere`) — jinak by padala „naslepo“ mimo obraz (oprava 9. 8. 2026)
   LVL.weeks.forEach((wname,w)=>{
     const wrap=el("div",{class:"week"});
     if(LVL.weeks.length>1) wrap.append(el("div",{class:"week-title"},wname+" týden"));
@@ -1232,15 +1432,15 @@ function renderSchedule(reasons){
       const rows=[]; for(let d=0;d<DAYS.length;d++) rows.push("minmax("+(46*lanesInDay[d])+"px,auto)");
       grid=el("div",{class:"grid",style:{
         gridTemplateColumns:"40px repeat("+LVL.periods+",minmax(54px,1fr))",
-        gridTemplateRows:"24px "+rows.join(" ")
+        gridTemplateRows:"26px "+rows.join(" ")
       }});
       grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
       for(let p=1;p<=LVL.periods;p++) grid.append(el("div",{class:"gh",style:{gridColumn:p+1,gridRow:1}},p+"."));
       DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:d+2}},dn)));
     }else{ // dny = sloupce, hodiny = řádky (transponováno pro úzký displej)
       grid=el("div",{class:"grid",style:{
-        gridTemplateColumns:"38px repeat("+DAYS.length+",1fr)",
-        gridTemplateRows:"24px repeat("+LVL.periods+",minmax(46px,auto))"
+        gridTemplateColumns:"26px repeat("+DAYS.length+",minmax(0,1fr))", // vejít se do šířky — stránka nesmí scrollovat do stran; názvy dělí hyphens:auto
+        gridTemplateRows:"26px repeat("+LVL.periods+",minmax(46px,auto))"
       }});
       grid.append(el("div",{class:"gp",style:{gridColumn:1,gridRow:1}},""));
       DAYS.forEach((dn,d)=>grid.append(el("div",{class:"gh",style:{gridColumn:d+2,gridRow:1}},dn)));
@@ -1250,56 +1450,77 @@ function renderSchedule(reasons){
     // POZADÍ: všechny buňky. V herním pohledu jsou to drop zóny.
     for(let d=0;d<DAYS.length;d++)for(let p=1;p<=LVL.periods;p++){
       // pokládat jde jen do rozvrhu třídy, které kartička patří — jinak by padala „naslepo“ mimo obraz
-      const droppable=playing && S.selected && card(S.selected).class===S.active && fits(card(S.selected),p);
+      const droppable=S.selected && belongsHere(card(S.selected)) && fits(card(S.selected),p);
       const props={ class:"cell"+(droppable?" drop":""), "data-w":w,"data-d":d,"data-p":p,
         style:{gridColumn:horiz?p+1:d+2, gridRow:horiz?d+2:p+1} };
-      if(playing) props.onclick=()=>{ if(S.selected && card(S.selected).class===S.active) tryPlace(S.selected,w,d,p); };
+      props.onclick=()=>{ if(S.selected && belongsHere(card(S.selected))) tryPlace(S.selected,w,d,p); };
       grid.append(el("div",props));
     }
 
-    // KARTIČKY — blok o `duration` hodinách se táhne podle orientace (doprava / dolů)
+    // KARTIČKY — blok o `duration` hodinách se táhne podle orientace (doprava / dolů).
+    // Na šířku se překryvy řeší pruhy (svisle v řádku dne); transponovaně je sloupec dne na pruhy
+    // moc úzký (58 px na 390 px), takže překrývající se kartičky jdou POD SEBE do jednoho bloku
+    // (`.lanegrp`, řádky hodin se natáhnou) — konflikt zůstává celý vidět a čitelný.
+    const groups={}; // klíč „d|s“ → {s,e,cards[]} (souvislé překryvy v jednom dni; jen transponovaně)
+    if(!horiz) for(let d=0;d<DAYS.length;d++){
+      const day=placed.filter(x=>x.pl.d===d).map(x=>({x,s:x.pl.p,e:x.pl.p+x.c.duration-1})).sort((a,b)=>a.s-b.s||a.e-b.e);
+      let cur=null;
+      day.forEach(it=>{
+        if(cur&&it.s<=cur.e){ cur.e=Math.max(cur.e,it.e); cur.cards.push(it.x); }
+        else{ cur={d,s:it.s,e:it.e,cards:[it.x]}; groups[d+"|"+it.s]=cur; }
+        cur.cards.forEach(x=>x._grp=cur);
+      });
+    }
+    const grpEl={};
     placed.forEach(x=>{
       const c=x.c, conf=reasons[x.id], n=lanesInDay[x.pl.d], L=lane[x.id], span="span "+c.duration;
       const st={"--f":fieldVar(c.field)};
+      const grp=!horiz&&x._grp&&x._grp.cards.length>1?x._grp:null; // transponovaný překryv → do bloku
       if(horiz){
         st.gridRow=x.pl.d+2; st.gridColumn=(x.pl.p+1)+" / "+span;
         if(n>1){ st.alignSelf="start"; st.height="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
         if(L>0){ st.transform="translateY(calc("+L+" * (100% + 4px)))"; }
-      }else{
+      }else if(!grp){
         st.gridColumn=x.pl.d+2; st.gridRow=(x.pl.p+1)+" / "+span;
-        if(n>1){ st.justifySelf="start"; st.width="calc((100% - "+((n-1)*4)+"px) / "+n+")"; }
-        if(L>0){ st.transform="translateX(calc("+L+" * (100% + 4px)))"; }
       }
       // sekundární popisek nezobrazuje to, podle čeho je pohled filtrovaný
       const sub = isBreak(c)          ? "nařízená pauza"
                 : S.view==="teacher"  ? c.class+" · "+c.room
                 : S.view==="room"     ? c.class+" · "+c.teacher
                 : c.teacher+" · "+c.room;
+      // desktop: dva sloupce (předmět | učebna, kdo | budova); v pohledu učeben je vpravo nahoře učitel
+      const who = S.view==="class" ? c.teacher : c.class;
+      const where = S.view==="room" ? c.teacher : c.room;
       const locked=S.locked.has(x.id);
       const props={
-        class:"pcard"+(isBreak(c)?" brk":"")+(conf?" conflict":"")+(playing?"":" ro")+(locked?" locked":""), style:st,
+        class:"pcard"+(isBreak(c)?" brk":"")+(conf?" conflict":"")+(locked?" locked":""), style:st,
         title:conf?[...conf].join(" · "):isBreak(c)?c.subject+" · "+c.class+" — nařízená pauza"
                                                   :c.subject+" · "+c.teacher+" · "+c.room+" ("+c.building+")"
       };
-      if(playing&&!locked){
+      if(!locked){
         props.onclick=ev=>{ if(ev.target.classList.contains("x"))return; pickUp(x.id); };
         props.onpointerdown=ev=>armDrag(ev,x.id,x.pl);
-      }else if(locked){
-        props.title+=" — zamčená kartička (daná levelem)";
       }else{
-        props.title+=" — klikni pro přechod do pohledu třídy "+c.class;
-        props.onclick=()=>{ S.view="class"; S.active=c.class; render(); };
+        props.title+=" — zamčená kartička (daná levelem)";
       }
-      grid.append(el("div",props,
+      let host=grid;
+      if(grp){ const k=grp.d+"|"+grp.s;
+        if(!grpEl[k]){ grpEl[k]=el("div",{class:"lanegrp",style:{gridColumn:grp.d+2,gridRow:(grp.s+1)+" / span "+(grp.e-grp.s+1)}}); grid.append(grpEl[k]); }
+        host=grpEl[k]; }
+      host.append(el("div",props,
         // vícehodinový blok: čárka na každé hranici hodiny + štítek délky (kolmo na osu hodin dle orientace)
         Array.from({length:c.duration-1},(_,k)=>el("div",{class:"tick "+(horiz?"h":"v"),
           style:horiz?{left:((k+1)/c.duration*100)+"%"}:{top:((k+1)/c.duration*100)+"%"}})),
         c.duration>1?el("div",{class:"durb"},c.duration+"h"):null,
-        playing&&!locked?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
+        !locked?el("div",{class:"x",title:"Odebrat",onclick:()=>unplace(x.id)},"×"):null,
         locked?el("div",{class:"lockb"},"🔒"):null,
-        el("div",{class:"subj"},c.subject),
-        el("div",{class:"sub"},sub),
-        isBreak(c)?null:el("div",{class:"sub"},c.building)
+        horiz&&!isBreak(c)
+          ? el("div",{class:"info"},
+              el("div",{class:"subj"},c.subject), el("div",{class:"sub r"},where),
+              el("div",{class:"sub"},who),        el("div",{class:"sub r"},c.building))
+          : [ el("div",{class:"subj"},c.subject),
+              el("div",{class:"sub"},sub),
+              isBreak(c)?null:el("div",{class:"sub"},c.building) ]
       ));
     });
     wrap.append(grid); box.append(wrap);
@@ -1313,11 +1534,20 @@ function renderGoals(reasons){
   const pct=tot?Math.round(done/tot*100):0;
   const confCount=Object.keys(reasons).length;
 
-  box.append(el("div",{class:"score"},el("b",{},pct+" %"),el("span",{class:"muted"},"splněno "+done+"/"+tot)));
-  box.append(el("div",{class:"bar"},el("div",{style:{width:pct+"%"}})));
+  const segbar=()=>el("div",{class:"segbar"},results.map(r=>el("i",{class:r.met?"met":""})));
+  box.append(el("div",{class:"score"},el("b",{},String(done),el("span",{class:"of"}," / "+tot)),el("span",{class:"muted"},"požadavků splněno")));
+  box.append(segbar());
 
-  box.append(el("div",{class:"conf-line "+(confCount?"bad":"ok")},
-    confCount?("Konflikty: "+confCount+" kartiček (červeně)") : "Žádné konflikty."));
+  const why=confCount?conflictSummary(reasons):"";
+  box.append(confCount
+    ? el("div",{class:"conf-line bad"},"⚑",el("div",{},el("b",{},plural(confCount,"kartička v konfliktu","kartičky v konfliktu","kartiček v konfliktu")),el("div",{class:"why"},why)))
+    : el("div",{class:"conf-line ok"},"Žádné konflikty."));
+  setStatusDot(confCount?"bad":Object.keys(S.placements).length?"ok":"");
+  // souhrn do hlavičky panelu (na mobilu je panel sbalený proužek nad lištou)
+  const sum=document.getElementById("goalsSummary"); if(sum){ sum.textContent="";
+    sum.append(el("b",{},done+" / "+tot),segbar(),
+      confCount?el("span",{style:{color:"var(--bad)",fontWeight:650}},plural(confCount,"konflikt","konflikty","konfliktů")):el("span",{class:"muted"},"bez konfliktů")); }
+  const badge=document.getElementById("placedBadge"); if(badge) badge.textContent=Object.keys(S.placements).length+" z "+LVL.cards.length+" umístěno";
 
   results.forEach(({g,met})=>{
     box.append(el("div",{class:"goal"+(met?" met":"")},
@@ -1327,19 +1557,31 @@ function renderGoals(reasons){
   });
 
   if(tot>0 && done===tot && confCount===0){
+    // postup dál rovnou z banneru — jinak hráč bloumá a hledá přepínač levelů (Jakub, 21. 8. 2026)
+    const next=LEVELS[LEVELS.indexOf(LVL)+1];
+    const nextBtn=next
+      ? el("button",{class:"next",onclick:()=>{ loadLevel(next.id); setStatus("Další level: "+next.name+"."); scrollTo(0,0); }},"Dál → "+next.name)
+      : el("span",{class:"muted",style:{fontWeight:"500"}},"Tohle byl poslední level — kampaň je dohraná. Vlastní levely jde stavět v Editoru.");
     if(S.assisted){ // fér ✓: výhru poskládanou řešičem/importem odznak nedostane
-      box.append(el("div",{class:"win"},"Rozvrh sedí — ale poskládal ho řešič (nebo import). ✓ se počítá jen za vlastnoruční výhru. 😏"));
+      box.append(el("div",{class:"win"},"Rozvrh sedí — ale poskládal ho řešič (nebo import). ✓ se počítá jen za vlastnoruční výhru. 😏",nextBtn));
     }else{
-      box.append(el("div",{class:"win"},"Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉"));
+      box.append(el("div",{class:"win"},"Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉",nextBtn));
       markDone(LVL.id);
     }
+    if(!isHorizontal()) document.getElementById("colGoals").classList.add("open"); // na mobilu ať je výhra (a postup dál) vidět
   }
-
-  // legenda jen pro obory, které v levelu opravdu jsou
-  box.append(el("div",{class:"legend"},
-    [...new Set(teaching().map(c=>c.field))].map(f=>
-      el("span",{},el("span",{class:"sw",style:{background:fieldVar(f)}}),FIELD_NAMES[f]||f))
-  ));
+}
+// kde a proč je konflikt: první obsazená buňka s víc kartičkami → „Út 2. h — 1.IT má dvě hodiny naráz (Matematika, Web)“
+function conflictSummary(reasons){
+  const occ={};
+  for(const id in S.placements) if(reasons[id]) for(const cell of cells(id,S.placements[id])){
+    const k=cell.w+"|"+cell.d+"|"+cell.p; (occ[k]=occ[k]||[]).push(id);
+  }
+  const keys=Object.keys(occ).filter(k=>occ[k].length>1).sort();
+  if(!keys.length) return "";
+  const [w,d,p]=keys[0].split("|").map(Number), ids=occ[keys[0]];
+  const where=(LVL.weeks.length>1?LVL.weeks[w]+" · ":"")+DAYS[d]+" "+p+". h";
+  return where+" — "+[...reasons[ids[0]]][0]+" ("+ids.map(id=>card(id).subject).join(", ")+")"+(keys.length>1?" + další":"");
 }
 
 /* =====================================================================
@@ -1364,6 +1606,7 @@ function readPlacements(o){ // z cizích dat převezmi jen platné placementy a 
   for(const id in (o.pl||{})){ const pl=o.pl[id]; if(validPlacement(id,pl)) valid[id]={w:pl.w,d:pl.d,p:pl.p}; }
   return valid;
 }
+let IMPORT_NOTE=""; // kolik kartiček poslední import vynechal — hráč má vědět, že pozice není celá
 function importStr(str,opts){
   try{
     const o=JSON.parse(b64d(str.trim()));
@@ -1371,10 +1614,12 @@ function importStr(str,opts){
     loadLevel(lv.id,false);
     const imported=readPlacements(o); // zamčené pozice drží applyGiven, import je nepřepisuje
     for(const id in imported){ if(!S.locked.has(id)) S.placements[id]=imported[id]; }
+    const dropped=Object.keys(o.pl||{}).length-Object.keys(imported).length;
+    IMPORT_NOTE=dropped<=0?"":" ("+(dropped===1?"1 neplatná kartička vynechána":dropped<5?dropped+" neplatné kartičky vynechány":dropped+" neplatných kartiček vynecháno")+")";
     S.assisted=true; // importovaná pozice — ✓ jen za vlastnoruční výhru
     render();
     if(!opts||opts.autosave!==false) autosave();
-    setStatus("Pozice načtena.");
+    setStatus("Pozice načtena."+IMPORT_NOTE);
     return true;
   }catch(e){ setStatus("Řetězec se nepodařilo načíst."); return false; }
 }
@@ -1399,39 +1644,51 @@ function copyText(t){ // clipboard API s fallbackem (file:// a starší prohlí�
 }
 
 /* ---------- MODÁLY ---------- */
+function openOverlay(modal,onClose){ // společný obal modálů: klik mimo i Esc zavře, fokus skočí dovnitř a po zavření se vrátí.
+  // Dřív zůstával fokus na tlačítku pod overlayem, takže Enter otevřel druhý modál přes první a Esc nedělal nic.
+  // Fokus jde na první tlačítko (u potvrzení je to „Zrušit“ — Enter tedy nic nezničí), ne do inputu (mobil by vytáhl klávesnici).
+  const prev=document.activeElement;
+  const ov=el("div",{class:"overlay",onclick:ev=>{ if(ev.target===ov) close(); }},modal);
+  function onKey(e){ if(e.key==="Escape"){ e.stopPropagation(); close(); } }
+  function close(){
+    if(!ov.isConnected) return;
+    document.removeEventListener("keydown",onKey,true); ov.remove();
+    if(onClose) onClose();
+    if(prev&&prev.isConnected&&prev.focus) prev.focus();
+  }
+  document.addEventListener("keydown",onKey,true); // capture: předběhne globální Esc (výběr kartičky)
+  document.body.append(ov);
+  const f=modal.querySelector("[autofocus],button"); if(f) f.focus();
+  ov.close=close; return ov;
+}
 function randomModal(){ // potvrzení „Náhodně“ + volba chytrého režimu (měkké cíle)
   const chk=el("input",{type:"checkbox"});
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
-  ov.append(el("div",{class:"modal"},
+  const ov=openOverlay(el("div",{class:"modal"},
     el("h3",{},"Náhodně rozmístit?"),
     el("p",{},"Doplní zbývající (neumístěné) kartičky bez tvrdých konfliktů. Tvoje ručně umístěné i zamčené zůstanou."),
     el("label",{style:{display:"flex",gap:"8px",alignItems:"center",fontSize:"13px",margin:"0 0 14px",cursor:"pointer",color:"var(--ink-soft)"}},
       chk,"Zkusit splnit i herní cíle (víc pokusů, ~1 s)"),
     el("div",{class:"row"},
-      el("button",{onclick:()=>ov.remove()},"Zrušit"),
-      el("button",{class:"primary",onclick:()=>{ ov.remove(); randomFill(chk.checked); }},"Rozmístit")
+      el("button",{onclick:()=>ov.close()},"Zrušit"),
+      el("button",{class:"primary",onclick:()=>{ ov.close(); randomFill(chk.checked); }},"Rozmístit")
     )
   ));
-  document.body.append(ov);
 }
 function confirmModal(title,text,onYes,yesLabel){
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)close();}});
-  function close(){ov.remove();}
-  ov.append(el("div",{class:"modal"},
+  const ov=openOverlay(el("div",{class:"modal"},
     el("h3",{},title), el("p",{},text),
     el("div",{class:"row"},
-      el("button",{onclick:close},"Zrušit"),
-      el("button",{class:"primary",onclick:()=>{close();onYes();}},yesLabel||"Potvrdit")
+      el("button",{onclick:()=>ov.close()},"Zrušit"),
+      el("button",{class:"primary",onclick:()=>{ ov.close(); onYes(); }},yesLabel||"Potvrdit")
     )
   ));
-  document.body.append(ov);
 }
 
 async function saveModal(){
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
+  let ov; // obal vzniká až pod obsahem — closures níž ho volají později
   const ta=el("textarea",{readonly:"readonly"},exportStr());
   const impIn=el("input",{type:"text",placeholder:"Sem vlož řetězec pozice…",style:{flex:"1",minWidth:"0"}});
-  const doImport=()=>{ if(impIn.value.trim() && importStr(impIn.value)) ov.remove(); };
+  const doImport=()=>{ if(impIn.value.trim() && importStr(impIn.value)) ov.close(); };
   impIn.addEventListener("keydown",e=>{ if(e.key==="Enter") doImport(); });
   const slotsBox=el("div",{});
   const shareRow=el("div",{class:"row",style:{justifyContent:"flex-start",marginTop:"8px"}},
@@ -1453,7 +1710,7 @@ async function saveModal(){
     el("h3",{style:{marginTop:"16px",fontSize:"14px"}},"Uložené pozice"),
     slotsBox
   );
-  ov.append(m); document.body.append(ov);
+  ov=openOverlay(m);
 
   async function refresh(){
     slotsBox.textContent="";
@@ -1474,7 +1731,7 @@ async function saveModal(){
       const name=k.split(":").slice(2).join(":");
       slotsBox.append(el("div",{class:"slot-row"},
         el("span",{class:"name"},name),
-        el("button",{onclick:async()=>{ const s=await Store.get(k); if(s&&importStr(s)) ov.remove(); }},"Načíst"),
+        el("button",{onclick:async()=>{ const s=await Store.get(k); if(s&&importStr(s)) ov.close(); }},"Načíst"),
         el("button",{onclick:async()=>{ await Store.del(k); refresh(); }},"Smazat")
       ));
     });
@@ -1488,20 +1745,17 @@ function solvableModal(){
   const prog=el("div",{class:"muted",style:{fontSize:"13px",margin:"2px 0 6px"}},"Počítám…");
   const barIn=el("div",{style:{width:"0%"}});
   const resBox=el("div",{});
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)close();}});
-  const closeBtn=el("button",{onclick:()=>close()},"Zrušit");
+  const closeBtn=el("button",{onclick:()=>ov.close()},"Zrušit");
   const run=checkSolvableAsync(lvl.id,M,st=>{
     prog.textContent="Vzorek "+st.i+"/"+M+" · kompletních rozvrhů "+st.complete+" · výher "+st.wins;
     barIn.style.width=(st.i/M*100)+"%";
   });
-  function close(){ run.cancel(); ov.remove(); }
-  ov.append(el("div",{class:"modal"},
-    el("h3",{},"Řešitelnost — "+lvl.name),
+  const ov=openOverlay(el("div",{class:"modal"},
+    el("h3",{},"Jde to vůbec vyhrát? · "+lvl.name),
     el("p",{},"Vzorkují se náhodné kompletní rozvrhy bez tvrdých konfliktů a měří se, jak často splní všechny cíle."),
     prog, el("div",{class:"bar"},barIn), resBox,
     el("div",{class:"row"},closeBtn)
-  ));
-  document.body.append(ov);
+  ),()=>run.cancel()); // zavření = zrušení běhu
   run.promise.then(r=>{
     if(!ov.isConnected) return; // modál mezitím zavřený (zrušeno)
     closeBtn.textContent="Zavřít";
@@ -1521,16 +1775,14 @@ function solvableModal(){
 /* Modál „O hře“ — kredit a role AI demonstrátoru. */
 const REPO_URL="https://github.com/senkyr/BoarShed";
 function aboutModal(){
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)ov.remove();}});
-  ov.append(el("div",{class:"modal"},
+  const ov=openOverlay(el("div",{class:"modal"},
     el("h3",{},"O hře"),
     el("p",{},"BoarShed — skládání rozvrhu. In-joke pro kolegy z SPŠ. A pro všechny, kdo na rozvrhy nadávají: teď si ho zkus poskládat sám, chytráku."),
-    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 1), u pozdějších levelů jen v setinách až desetinách procenta (finále „Celá škola“ se všemi 16 třídami ~0,2 %). Celá hra je jeden HTML soubor bez závislostí."),
+    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 0 · Rozjezd), u pozdějších levelů jen v setinách až desetinách procenta (finále „Celá škola“ se všemi 16 třídami ~0,2 %). Celá hra je jeden HTML soubor bez závislostí."),
     REPO_URL?el("p",{},el("a",{href:REPO_URL,target:"_blank",rel:"noopener"},"Zdrojáky a celá historie vývoje")):null,
     el("p",{class:"muted",style:{fontSize:"12px"}},"Pro zvídavé: F12 → konzole → await checkSolvable(\"l6\"). Vlastní levely jde stavět v Editoru a posílat odkazem."),
-    el("div",{class:"row"},el("button",{onclick:()=>ov.remove()},"Zavřít"))
+    el("div",{class:"row"},el("button",{onclick:()=>ov.close()},"Zavřít"))
   ));
-  document.body.append(ov);
 }
 
 /* =====================================================================
@@ -1573,10 +1825,21 @@ function goalDeadWithLocked(g){ // cíl, který zamčené kartičky znemožňuj�
     default: return false; // all_placed, class_no_gaps, transition_gap — z pevného základu rozhodnout nejde
   }
 }
+function carryReady(src,pl){ // iron-man přenáší jen DOHRANÝ zdroj: vše položené, bez tvrdého konfliktu, cíle splněné.
+  // Rozehraný l4 s červeným konfliktem by se jinak zamkl do l5 jako neopravitelný konflikt
+  // (zamčené nejde zvednout) a level by tiše nešel vyhrát; částečný l4 by zase l5 nechtěně zlehčil.
+  const savedLVL=LVL, savedPl=S.placements;
+  LVL=src; S.placements={};
+  try{
+    for(const id in pl){ if(validPlacement(id,pl[id])) S.placements[id]={w:pl[id].w,d:pl[id].d,p:pl[id].p}; }
+    return src.cards.every(c=>S.placements[c.id]) && !Object.keys(computeConflicts()).length && src.goals.every(g=>evalGoal(g));
+  }finally{ LVL=savedLVL; S.placements=savedPl; }
+}
 function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man přenos (carryFrom)
   const lvl=LVL; // hráč mohl během čekání na Store přepnout level
   S.locked=new Set();
   const lockAll=src=>{ for(const id in src){ if(validPlacement(id,src[id])){ S.placements[id]={w:src[id].w,d:src[id].d,p:src[id].p}; S.locked.add(id); } } };
+  const unlockAll=()=>{ S.locked.forEach(id=>{ delete S.placements[id]; }); S.locked=new Set(); };
   lockAll(LVL.given||{});
   if(LVL.carryFrom && Store){
     return Store.get("auto:"+LVL.carryFrom).then(s=>{
@@ -1584,15 +1847,17 @@ function applyGiven(){ // zamkne kartičky dané levelem: given z dat + iron-man
       try{
         const pl=JSON.parse(b64d(s)).pl||{};
         if(!Object.keys(pl).length) return;
-        S.locked.forEach(id=>{ delete S.placements[id]; }); // přenos nahrazuje výchozí given
-        S.locked=new Set();
-        lockAll(pl);
+        const src=LEVELS.find(l=>l.id===LVL.carryFrom);
+        if(!src||!carryReady(src,pl)){ // rozehraný / konfliktní / nevyhraný zdroj zůstává u vzorového given
+          setStatus("Rozvrh z minulého levelu není dohraný (nebo má konflikt) — zamčený základ je proto vzorové řešení. Chceš-li iron-man, nejdřív ho vyhraj.");
+          return;
+        }
+        unlockAll(); lockAll(pl); // přenos nahrazuje výchozí given
         const dead=LVL.goals.find(goalDeadWithLocked);
-        if(dead){ // přenesený rozvrh by level znemožnil → radši vzorový základ než neřešitelný level
-          S.locked.forEach(id=>{ delete S.placements[id]; });
-          S.locked=new Set();
-          lockAll(LVL.given||{});
-          setStatus("S rozvrhem přeneseným z minulého levelu by nešlo splnit „"+dead.label+"“ — zamčený základ je proto vzorové řešení.");
+        if(dead||Object.keys(computeConflicts()).length){ // přenesený rozvrh by level znemožnil → radši vzorový základ než neřešitelný level
+          unlockAll(); lockAll(LVL.given||{});
+          setStatus(dead?"S rozvrhem přeneseným z minulého levelu by nešlo splnit „"+dead.label+"“ — zamčený základ je proto vzorové řešení."
+                        :"Rozvrh přenesený z minulého levelu má tady konflikt — zamčený základ je proto vzorové řešení.");
         }
         render();
       }catch(e){}
@@ -1604,9 +1869,11 @@ function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
   S.placements={}; S.selected=null; S.pickedFrom=null; S.assisted=false; S.view="class"; S.active=classesOf()[0];
   HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
+  document.getElementById("colGoals").classList.remove("open"); // mobil: proužek požadavků rozbalený výhrou se s novým levelem sbalí
   const ready=applyGiven(), cur=LVL;
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
+  document.getElementById("levelSel").title=LVL.desc; // na úzkém displeji je popis skrytý
   render();
   setStatus("Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).");
   if(doAutoload!==false) ready.then(()=>{ if(LVL===cur) loadAutosave(); });
@@ -1710,7 +1977,7 @@ function handleHash(){ // #p=<pozice> / #l=<level>; vrací true, když hash zkon
   }catch(e){}
   if(ok){
     try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} // reload už nepřepíše rozehranou pozici
-    if(h[1]==="p") setStatus("Načtena sdílená pozice.");
+    if(h[1]==="p") setStatus("Načtena sdílená pozice."+IMPORT_NOTE);
   }
   return ok;
 }
@@ -1730,8 +1997,8 @@ function importLevelStr(str){ // sdílený level z odkazu (#l=…) → uložit m
 }
 function editorModal(){
   let edRun=null; // běžící test řešitelnosti (zrušit při novém spuštění / zavření)
-  function closeEd(){ if(edRun) edRun.cancel(); ov.remove(); }
-  const ov=el("div",{class:"overlay",onclick:ev=>{if(ev.target===ov)closeEd();}});
+  let ov; // obal vzniká až pod obsahem
+  function closeEd(){ ov.close(); }
   const ta=el("textarea",{spellcheck:"false",style:{minHeight:"260px"}});
   const msg=el("div",{style:{fontSize:"12px",whiteSpace:"pre-wrap",margin:"6px 0",minHeight:"16px"}});
   const say=(t,bad)=>{ msg.textContent=t; msg.style.color=bad?"var(--bad)":"var(--ok)"; };
@@ -1758,7 +2025,7 @@ function editorModal(){
       el("button",{onclick:()=>{ LEVELS.splice(LEVELS.indexOf(l),1); saveCustoms(); buildLevelSel(); listCustoms(); if(LVL===l) loadLevel(LEVELS[0].id); }},"Smazat")
     )));
   }
-  ov.append(el("div",{class:"modal",style:{maxWidth:"640px"}},
+  ov=openOverlay(el("div",{class:"modal",style:{maxWidth:"640px"}},
     el("h3",{},"Editor levelů"),
     el("p",{},"Level je JSON stejného tvaru jako vestavěné levely (cards, goals, volitelně given/carryFrom). Typy cílů a parametry popisuje CLAUDE.md."),
     el("div",{class:"row",style:{justifyContent:"flex-start",marginBottom:"8px"}},tplSel),
@@ -1772,7 +2039,7 @@ function editorModal(){
         edRun=checkSolvableAsync(o,200,st=>{ say("Testuju řešitelnost… vzorek "+st.i+"/200, výher "+st.wins+".",false); });
         edRun.promise.then(r=>{ if(!ov.isConnected) return;
           say(r.solvable?("Řešitelné — výhra ≈"+r.winRatePct+" % náhodných rozvrhů."):"Nenašla se výhra (200 vzorků) — level je hodně těžký nebo neřešitelný.",!r.solvable); });
-      }},"Řešitelnost"),
+      }},"Jde to vyhrát?"),
       location.protocol.indexOf("http")===0?el("button",{onclick:()=>{
         const o=parseValid(); if(!o) return;
         delete o.custom;
@@ -1792,13 +2059,12 @@ function editorModal(){
     el("h3",{style:{marginTop:"16px",fontSize:"14px"}},"Vlastní levely"),
     custBox,
     el("div",{class:"row",style:{marginTop:"10px"}},el("button",{onclick:closeEd},"Zavřít"))
-  ));
-  document.body.append(ov);
+  ),()=>{ if(edRun) edRun.cancel(); }); // zavření ruší běžící test řešitelnosti
   listCustoms();
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
-  statusEl=document.getElementById("status");
+  statusEl=document.getElementById("statusText");
   buildLevelSel();
   document.getElementById("levelSel").addEventListener("change",ev=>loadLevel(ev.target.value));
 
@@ -1811,6 +2077,15 @@ window.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("checkBtn").onclick=solvableModal;
   document.getElementById("undoBtn").onclick=undo;
   document.getElementById("redoBtn").onclick=redo;
+  // „Více“ (mobil): Editor a Uložit v rozbalovací nabídce
+  const moreBtn=document.getElementById("moreBtn"), more=document.getElementById("moreMenu");
+  const closeMore=()=>{ more.classList.remove("open"); moreBtn.setAttribute("aria-expanded","false"); };
+  moreBtn.onclick=ev=>{ ev.stopPropagation(); const o=!more.classList.contains("open"); more.classList.toggle("open",o); moreBtn.setAttribute("aria-expanded",o?"true":"false"); };
+  more.addEventListener("click",closeMore); document.addEventListener("click",ev=>{ if(!ev.target.closest("#moreMenu,#moreBtn")) closeMore(); });
+  // požadavky na mobilu: sbalený proužek, ťuknutí rozbalí
+  document.getElementById("goalsHead").onclick=()=>{ if(!isHorizontal()){ document.getElementById("colGoals").classList.toggle("open"); updateDock(); } };
+  // ťuknutí na zásobník (mimo kartičku) vrací zvednutou kartičku z rozvrhu
+  document.getElementById("colPalette").addEventListener("click",ev=>{ if(ev.target.closest(".card")) return; if(S.selected&&S.pickedFrom) returnToPalette(); });
 
   // motiv nastavil synchronní skript v <head>; async úložiště (artefakt) ho jen doladí
   if(Store) Store.get("theme").then(t=>{ if(t && t!==document.documentElement.getAttribute("data-theme")) setTheme(t); });
@@ -1833,8 +2108,10 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   // překresli rozvrh při změně orientace (desktop na šířku ↔ úzký displej dolů).
   // Hlídá se přes resize (spolehlivější než matchMedia), překreslí jen při PŘEKLOPENÍ.
-  let lastHoriz=isHorizontal();
-  window.addEventListener("resize",()=>{ const h=isHorizontal(); if(h!==lastHoriz){ lastHoriz=h; render(); } });
+  let lastHoriz=isHorizontal(), lastStacked=window.matchMedia("(max-width:1100px)").matches;
+  window.addEventListener("resize",()=>{ const h=isHorizontal(), st=window.matchMedia("(max-width:1100px)").matches;
+    if(h!==lastHoriz||st!==lastStacked){ lastHoriz=h; lastStacked=st; document.getElementById("colGoals").classList.remove("open"); render(); } else updateDock(); });
+  updateDock();
 
   // nejdřív vlastní levely (sdílený odkaz může mířit na custom level), pak hash:
   // #p=<pozice> nebo #l=<celý level>; jinak výchozí level

@@ -72,7 +72,7 @@ Hráč přetahuje kartičky do rozvrhu a snaží se splnit současně všechny p
 Vše je v jediném souboru `index.html` — čistý HTML + CSS + vanilla JS, **bez závislostí a bez build
 kroku**. Renderuje se jako artefakt a zároveň je to přímo soubor pro nasazení jako Render **Static Site**.
 
-**Doplněno po MVP (iterace 06–07/2026):** pohledy za učitele/učebnu (jen pro čtení), rozvrh
+**Doplněno po MVP (iterace 06–07/2026):** pohledy za učitele/učebnu (tehdy jen pro čtení), rozvrh
 „na šířku" na desktopu, lanes pro překrývající se kartičky, nové typy cílů (`subject_week`,
 `max_per_day`, `lunch_break`, `teacher_time`, aktivní `teacher_transition_gap`), kontrola
 řešitelnosti (modál s průběhem a tabulkou per-cíl), **jednotný pointer-drag** (myš i dotyk,
@@ -84,7 +84,9 @@ se ukládají do úložiště a v přepínači mají `*`) a **chytřejší řeš
 volitelný multi-restart na měkké cíle, hlášení kterého tvrdého požadavku se doplnění zaseklo).
 Dále: opravy z adversarial bug huntu (11 nálezů) a race conditions async úložiště, mobilní
 layout (rezerva pod zalomenou lištou, výraznější drop zóny i na slunci, skrytý řádek budovy
-v úzkých buňkách), studentská edice (detail v §5) a **ruční playtest** — l1–l4 + l6 odehrány
+v úzkých buňkách; od 21. 8. 2026 má kartička v rozvrhu na šířku dvousloupcový popisek
+předmět | učebna, učitel/třída | budova — tři řádky pod sebou se nevešly), studentská edice
+(detail v §5) a **ruční playtest** — l1–l4 + l6 odehrány
 a vyhrány přes UI bez řešiče, balanc sedí i pocitově (07/2026).
 
 **Opravy z hraní (9. 8. 2026)** — čtyři nálezy z reálného hraní: (1) kartičku šlo s výběrem
@@ -96,6 +98,35 @@ přeměřena; (3) dvojhodinovky nebyly v rozvrhu poznat — přidány čárky na
 a štítek „2h"; (4) iron-man přenos do l5 uměl level učinit neřešitelným (zamčené 3 hodiny
 3.IT v jednom dni vs. cíl „max 2 denně") — viz pojistka `goalDeadWithLocked` v §5.
 
+**Opravy z testu (21. 8. 2026)** — detailní průchod mechanik a UI (desktop + emulovaný mobil,
+protokol v Cortexu). Chyby: (1) `el()` nastavoval custom property `--f` přes `Object.assign`,
+takže barva oboru na kartičkách nikdy nefungovala — proto položené kartičky splývaly s volnými
+buňkami; (2) iron-man přenášel do l5 i rozehraný l4 s konfliktem → zamčený neopravitelný
+konflikt, teď `carryReady` pouští jen dohraný, bezkonfliktní a vyhraný zdroj; (3) řešič na
+neřešitelném vlastním levelu zamrazil UI na ~68 s — přidán časový box; (4) fér ✓ šlo obejít
+zvednutím a vrácením kartičky na místo; (5) modály nešly zavřít Esc a fokus zůstával pod nimi
+(Enter otevřel druhý) — společný `openOverlay`, `.modal` s `max-height` pro telefon; (6) import
+tiše zahazoval neplatné pozice — hlásí počet; (7) na 390 px se názvy drtily po třech písmenech —
+min. šířka sloupce 68 px + vodorovný scroll rozvrhu. Design (Jakub): dvousloupcový popisek
+kartičky (předmět | učebna, učitel | budova) v rozvrhu i v paletě, šířka kartičky v paletě podle
+počtu hodin (1h užší, 2h delší, výška stejná — délka bloku je v rozvrhu vodorovná) místo
+štítku „2h", sytější výplň a rámeček oboru, zářezy místo dělicí linky, hlavní přepínač pohledu jako
+segmentový ovladač odlišený od pilulek podružných záložek.
+**Doladění z návrhového plátna (21. 8. 2026, /design — „doladit, ne překopat“):** stejné tokeny
+a rozvržení, šest cílených úprav: hlavička (level v titulku, počítadlo umístěných, ikonová
+dvojice), paleta seskupená po třídách s legendou v patičce, tišší mřížka se štítky hodin a dnů,
+požadavky „2 / 5“ + segmentový ukazatel + konflikt s důvodem, lišta s ikonami a stavovou tečkou,
+a mobil: hlavička na dva řádky + „Více“, třídy jako select, paleta jen aktivní třídy zalomená do
+řádků, požadavky jako fixní sbalený proužek nad lištou, lišta na jeden řádek, překryvy pod sebou.
+Tři zásady od Jakuba, které to řídí: stránka nesmí scrollovat do stran, ovládání dole musí být
+vždy na obrazovce (rezervu počítá JS z výšky doku) a scroll k dolním kartičkám nesmí odvézt rozvrh
+a úkoly z obrazu (na desktopu jsou zásobník a požadavky přilepené a scrollují uvnitř; ve sloupcích
+pod sebou ukazuje paleta jen aktivní skupinu). Téhož dne: drop zóny zelené místo vínové (vínová je
+konflikt), lišta bez zvýrazněného tlačítka, „Řešitelnost?" → „Jde to vůbec vyhrát?", a hraní ve
+všech třech pohledech — zvednutí kartičky v Učitelích zůstává u učitele, zásobník je seskupený
+podle entity pohledu; legenda s plnými názvy oborů a tlačítko „Dál →“ ve výherním banneru.
+Otevřené: klávesnicové ovládání.
+
 **Nařízená pauza (8/2026)** — každá třída má kartičku `Oběd` (`kind:"break"`, šrafovaná).
 Engine ji pustí jen do obědového okna (`LVL.breakWindow`, výchozí 4.–5. hodina) — tvrdé
 pravidlo, ne herní cíl; jako cíl by u l7 se 16 třídami znemožnil ověření vzorkováním.
@@ -106,7 +137,7 @@ typ v enginu zůstává pro vlastní levely.
 **UI a rozvržení**
 - Tři sloupce: Kartičky / Rozvrh / Požadavky. Responsivní — pod 1100 px se skládají pod sebe.
 - Hlavička: výběr levelu, Editor, Uložit/Načíst, ⓘ O hře, přepínač světlý/tmavý režim.
-- Spodní lišta: Zpět/Znovu, Smazat, Náhodně, Řešitelnost?, stavový řádek.
+- Spodní lišta: Zpět/Znovu, Smazat, Náhodně, „Jde to vůbec vyhrát?" (dřív Řešitelnost?), stavový řádek.
 - Světlý/tmavý motiv přes CSS proměnné, výchozí dle systémové preference, volba se ukládá.
 
 **Herní smyčka**
@@ -141,7 +172,7 @@ a seznamem slotů.
 
 **Kampaň**
 - 7 levelů `l1`–`l7` (Rozjezd → První ročníky → Druhé ročníky → Třetí ročníky →
-  Iron-man dostavba → Čtvrté ročníky → finále „Celá škola") ve světě 4 oborů, ročníků 1–4
+  Iron-man dostavba → Maturitní ročníky → finále „Celá škola"; zobrazená čísla 0–6 = ročník, id l1–l7 zůstávají) ve světě 4 oborů, ročníků 1–4
   a 3 budov + externích tělocvičen. Kampaň postupuje po ročnících, finále má
   **všech 16 tříd** (4 obory × 4 ročníky) naráz.
   Rozsah, zástupná data a naměřený balanc: §5 „Obsah" a CLAUDE.md → „Svět kampaně".
@@ -215,7 +246,7 @@ vidí ho červeně a opraví. Výhra vyžaduje nula konfliktů. (Přesah bloku m
 
 **Pohled po třídách s globální detekcí konfliktů.** Konflikt v 1.A může být kvůli 2.B — důvod je
 v tooltipu. Pohled „za učitele“ / „za učebnu“ zatím není. *(Překonáno: pohledy doplněny později,
-jen pro čtení.)*
+od 21. 8. 2026 se v nich i hraje.)*
 
 **Jen režim „na kola“.** Iron man (levely na sebe) není postaven; datový model je na to připravený
 (předchozí pozice by se vložily jako zamčené „dané“ kartičky). *(Překonáno 07/2026: iron-man
