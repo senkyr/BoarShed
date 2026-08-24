@@ -726,9 +726,11 @@ function card(id){ return LVL.cards.find(c=>c.id===id); }
 function isBreak(c){ return !!c && c.kind==="break"; }
 function breakWindow(){ return LVL.breakWindow || [4,5]; }
 function teaching(){ return LVL.cards.filter(c=>!isBreak(c)); }
-function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))]; }
-function teachersOf(){ return [...new Set(teaching().map(c=>c.teacher))]; }
-function roomsOf(){ return [...new Set(teaching().map(c=>c.room))]; }
+// Abecední řazení entit (záložky, roletka, skupiny palety) — česká abeceda, čísla po řadě (T3 < T12).
+const COLL=new Intl.Collator("cs",{numeric:true});
+function classesOf(){ return [...new Set(LVL.cards.map(c=>c.class))].sort(COLL.compare); }
+function teachersOf(){ return [...new Set(teaching().map(c=>c.teacher))].sort(COLL.compare); }
+function roomsOf(){ return [...new Set(teaching().map(c=>c.room))].sort(COLL.compare); }
 function entitiesOf(view){ return view==="teacher"?teachersOf():view==="room"?roomsOf():classesOf(); }
 function entityOf(c,view){ return view==="teacher"?c.teacher:view==="room"?c.room:c.class; }
 // Obory: IT = Informatika a management, EP = elektronické počítače,
