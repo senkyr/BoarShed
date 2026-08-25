@@ -191,26 +191,37 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   rozvrh má sloupce `minmax(0,1fr)`, paleta zalamuje, `html,body{overflow-x:hidden}` je jen pojistka;
   (2) **ovládání dole je vždy na obrazovce** — lišta je fixní a rezervu pod obsahem počítá
   `updateDock()` z její skutečné výšky (`--tb-h`, `--dock-h`), ne media queries.
-  Ovládání = lišta; požadavky jsou obsah a od 25. 8. 2026 stojí na mobilu nahoře v toku. Hlavička: titul | level (`<select class="lvlsel">` vínově jako odkaz) +
+  Ovládání = lišta; požadavky jsou obsah a od 25. 8. 2026 stojí nahoře v toku ve všech šířkách. Hlavička: titul | level (`<select class="lvlsel">` vínově jako odkaz) +
   počítadlo `#placedBadge` · popis levelu pod tím · vpravo Editor, Uložit a ikonová dvojice ⓘ ◐
   (`.btngroup`). **Úzký displej (< 820 px, stejná hranice jako překlopení rozvrhu):** hlavička na
   dva řádky, Editor a Uložit v nabídce „Více“ (`#moreMenu`), záložky entit jako `<select
   class="tabsel">`, paleta jen aktivní třídy zalomená do řádků (ostatní třídy počtem), kartičky
   v rozvrhu bez × (vrací se tažením nebo ťuknutím na zásobník — `returnToPalette()`, platí i na
-  desktopu), požadavky jako **sbalený proužek nahoře** — `#colGoals{order:-1}`, tedy první blok v toku,
-  nad zásobníkem i rozvrhem (Jakub, 25. 8. 2026; dřív fixní proužek nad lištou). Souhrn
-  v `#goalsSummary`, ťuknutí rozbalí, výhra rozbalí sama a **doscrolluje k němu**
-  (`scrollIntoView`, jen při přechodu do výhry — nahoře už není pod rukou jako dřív dole);
-  lišta na jeden řádek ikon + stavový řádek; rozbalený proužek se s novým levelem sbalí.
+  desktopu); lišta na jeden řádek ikon + stavový řádek.
   **Výjimka od 25. 8. 2026:** krátký popisek „Jde to?“ → „Jde to vůbec?“ (Jakub) je o ~43 px
   širší a na **360 a 375 px** už se čtvrté tlačítko na řádek nevejde — lišta se zalomí na dva
   řádky ikon (87 → 137 px). Od 390 px výš (iPhone 12+) i pod 320 px je stav stejný jako dřív.
   Změřeno v iframu po šířkách; užší mezery ani menší odsazení to nespraví (`#randomBtn` má
   `flex:1`, takže se místo toho smrskne na 52 px a přijde o popisek). Nic se neztrácí —
   rezerva pod obsahem se počítá z reálné výšky lišty, takže obsah nezakryje.
-  Do rezervy `--dock-h` se panel **nepočítá** — ta je jen z výšky lišty. V liště nemá žádné tlačítko zvýraznění —
+  V liště nemá žádné tlačítko zvýraznění —
   „Náhodně rozmístit" je pomůcka, ne hlavní akce (Jakub, 21. 8. 2026). Překryvy jdou transponovaně **pod sebe do bloku** (`.lanegrp`, řádky hodin se natáhnou)
   — pruhy vedle sebe se v 58px sloupci rozsypaly na písmena.
+- **PRUH POŽADAVKŮ (`#colGoals`) — ve všech šířkách stejný** (Jakub, 25. 8. 2026; postupně:
+  sloupec vpravo → fixní proužek nad lištou na mobilu → pruh nahoře všude). Není sloupec ani
+  překryv, ale **sbalovací pruh přes celou šířku nad obsahem**: `order:-1` + `flex:0 0 100%`
+  v zalomeném `.wrap`, pod ním Kartičky | Rozvrh. Sklapnutý drží jen souhrn `#goalsSummary`
+  („2 / 5 …“ + šipka) na jednom řádku (~38 px), rozbalený ~440 px.
+  - **Výchozí stav dělá `setGoalsDefault()`** (volá ho `loadLevel` a překlopení orientace):
+    na mobilu **rozevřený** — hráč požadavky nemá přehlédnout a stejně pak pracuje dole
+    u rozvrhu; na desktopu **sklapnutý**, ať nebere místo rozvrhu. Ruční ťuknutí na
+    `#goalsHead` to přebije až do dalšího levelu.
+  - **Výhra pruh rozbalí a doscrolluje na banner** (`winBox.scrollIntoView`, jen při přechodu
+    do výhry) — nahoře není pod rukou jako dřív dole u lišty.
+  - **Sticky je jen zásobník** (`#colPalette`, ≥ 1101 px). Požadavky sticky nejsou — sklapnutý
+    pruh nemá co držet na očích. Tím padá půlka zásady z 21. 8. 2026 („zásobník i požadavky
+    přilepené“); zbytek platí dál.
+  - Do rezervy `--dock-h` se pruh **nepočítá** — ta je jen z výšky lišty.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`
   (+ `updateDock()`). `renderPalette` skládá kartičky do **skupin podle entity aktuálního pohledu**
   (`.pgroup`: v Třídách čtvereček oboru + třída, v Učitelích/Učebnách jméno/učebna; počet; skupina
@@ -312,8 +323,8 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   a úzké okno (< 820 px): stránka nesmí scrollovat do stran (`scrollWidth ≤ innerWidth`, i v l7),
   fixní lišta nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
   ukazuje jen aktivní třídu, kartička zvednutá z rozvrhu se vrátí ťuknutím na zásobník, překryv
-  dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, proužek požadavků se rozbalí
-  a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
+  dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, pruh požadavků je na mobilu
+  rovnou rozevřený (na desktopu sklapnutý) a ťuknutím se přepne, a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
   Dotyk otestuj i na reálném zařízení, ne jen v emulaci.
 - **Po úpravě dat/cílů levelu** spusť „Jde to vůbec vyhrát?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.
@@ -355,7 +366,8 @@ kartičky (i v paletě), šířka kartičky v paletě podle hodin (výška stejn
 a zářezy místo dělicí linky, segmentový přepínač pohledu. Doladění z návrhového plátna (týž den,
 všech šest bodů — viz LAYOUT výš): hlavička s levelem v titulku a počítadlem, paleta po třídách,
 tišší mřížka, „2 / 5“ + segmenty + konflikt s důvodem, lišta s ikonami a tečkou, mobilní chrome
-(Více, select tříd, paleta aktivní třídy, fixní proužek požadavků, lišta na jeden řádek).
+(Více, select tříd, paleta aktivní třídy, fixní proužek požadavků — od 25. 8. 2026 pruh nahoře
+ve všech šířkách, lišta na jeden řádek).
 Zůstává: klávesnicové ovládání.
 
 Obsah je hotový „naslepo": kampaň 7 levelů (l1–l7, viz SVĚT KAMPANĚ výš), obtížnost

@@ -20,8 +20,9 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
 
 ## Funkce
 
-- Tři sloupce: **Kartičky / Rozvrh / Požadavky**, responzivní (pod 1100 px nad sebe; na telefonu
-  paleta jen aktivní třídy, požadavky jako sbalený proužek nahoře, nic nescrolluje do stran).
+- **Požadavky** jako sbalovací pruh nahoře (na telefonu rovnou rozevřený, na desktopu sklapnutý),
+  pod ním **Kartičky | Rozvrh**; responzivní (pod 1100 px nad sebe; na telefonu paleta jen
+  aktivní třídy, nic nescrolluje do stran).
 - **Rozvrh „na šířku" na desktopu** (dny v řádcích, hodiny ve sloupcích); na úzkém
   displeji se překlopí na hodiny pod sebou.
 - Umístění kartičky **kliknutím** i **tažením** — jednotný pointer-drag funguje myší
