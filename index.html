@@ -1405,10 +1405,11 @@ function renderTabs(){
 // Desktop ("na šířku"): dny v řádcích, hodiny ve sloupcích.
 // Úzký displej: transponováno (hodiny v řádcích, dolů). Při změně se překresluje.
 function isHorizontal(){ return window.matchMedia("(min-width:820px)").matches; }
-// výchozí stav pruhu požadavků: na mobilu rozevřený (hráč je nemá přehlédnout — pak už pracuje
-// dole u rozvrhu), na desktopu sklapnutý, ať nebere místo. Ruční ťuknutí to přebije až do
-// dalšího levelu / překlopení orientace.
-function setGoalsDefault(){ document.getElementById("colGoals").classList.toggle("open",!isHorizontal()); }
+// výchozí stav pruhu požadavků: rozevřený jen v prvním levelu kampaně (mobil i desktop) — tam
+// je hráč vidět musí. Ve vyšších levelech i ve vlastních je sklapnutý: hráč už ví, co hraje,
+// a pruh nemá brát místo rozvrhu. Ruční ťuknutí to přebije až do dalšího levelu.
+// LEVELS[0] je vždy l1 — vlastní levely z editoru se přidávají na konec (LEVELS.push).
+function setGoalsDefault(){ document.getElementById("colGoals").classList.toggle("open",LVL===LEVELS[0]); }
 
 function renderSchedule(reasons){
   const box=document.getElementById("schedule"); box.textContent="";
@@ -1880,7 +1881,7 @@ function loadLevel(id,doAutoload){
   LVL=LEVELS.find(l=>l.id===id)||LEVELS[0];
   S.placements={}; S.selected=null; S.pickedFrom=null; S.assisted=false; S.view="class"; S.active=classesOf()[0];
   HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
-  setGoalsDefault(); // nový level: mobil rozevřený (ať hráč požadavky nepřehlédne), desktop sklapnutý
+  setGoalsDefault(); // nový level: rozevřený jen v prvním, dál sklapnutý
   const ready=applyGiven(), cur=LVL;
   document.getElementById("lvlDesc").textContent=LVL.desc;
   document.getElementById("levelSel").value=LVL.id;
@@ -2121,7 +2122,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   // Hlídá se přes resize (spolehlivější než matchMedia), překreslí jen při PŘEKLOPENÍ.
   let lastHoriz=isHorizontal(), lastStacked=window.matchMedia("(max-width:1100px)").matches;
   window.addEventListener("resize",()=>{ const h=isHorizontal(), st=window.matchMedia("(max-width:1100px)").matches;
-    if(h!==lastHoriz||st!==lastStacked){ lastHoriz=h; lastStacked=st; setGoalsDefault(); render(); } else updateDock(); });
+    if(h!==lastHoriz||st!==lastStacked){ lastHoriz=h; lastStacked=st; render(); } else updateDock(); });
   updateDock();
 
   // nejdřív vlastní levely (sdílený odkaz může mířit na custom level), pak hash:

@@ -212,10 +212,13 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   překryv, ale **sbalovací pruh přes celou šířku nad obsahem**: `order:-1` + `flex:0 0 100%`
   v zalomeném `.wrap`, pod ním Kartičky | Rozvrh. Sklapnutý drží jen souhrn `#goalsSummary`
   („2 / 5 …“ + šipka) na jednom řádku (~38 px), rozbalený ~440 px.
-  - **Výchozí stav dělá `setGoalsDefault()`** (volá ho `loadLevel` a překlopení orientace):
-    na mobilu **rozevřený** — hráč požadavky nemá přehlédnout a stejně pak pracuje dole
-    u rozvrhu; na desktopu **sklapnutý**, ať nebere místo rozvrhu. Ruční ťuknutí na
-    `#goalsHead` to přebije až do dalšího levelu.
+  - **Výchozí stav dělá `setGoalsDefault()`** (volá ho `loadLevel`): **rozevřený jen v prvním
+    levelu kampaně** (`LVL===LEVELS[0]`, tedy `l1`) — mobil i desktop stejně; tam hráč požadavky
+    vidět musí. Ve vyšších levelech i ve vlastních **sklapnutý**: hráč už ví, co hraje, a pruh
+    nemá brát místo rozvrhu (Jakub, 25. 8. 2026; dřív rozhodovala šířka — mobil rozevřený,
+    desktop sklapnutý). `LEVELS[0]` je vždy `l1`, vlastní levely z editoru jdou na konec
+    (`LEVELS.push`). Ruční ťuknutí na `#goalsHead` to přebije až do dalšího levelu —
+    **překlopení orientace stav už nepřenastavuje**, když na šířce nezáleží.
   - **Výhra pruh rozbalí a doscrolluje na banner** (`winBox.scrollIntoView`, jen při přechodu
     do výhry) — nahoře není pod rukou jako dřív dole u lišty.
   - **Sticky je jen zásobník** (`#colPalette`, ≥ 1101 px). Požadavky sticky nejsou — sklapnutý
@@ -324,7 +327,7 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   fixní lišta nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
   ukazuje jen aktivní třídu, kartička zvednutá z rozvrhu se vrátí ťuknutím na zásobník, překryv
   dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, pruh požadavků je na mobilu
-  rovnou rozevřený (na desktopu sklapnutý) a ťuknutím se přepne, a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
+  v prvním levelu rovnou rozevřený (ve vyšších sklapnutý) a ťuknutím se přepne, a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
   Dotyk otestuj i na reálném zařízení, ne jen v emulaci.
 - **Po úpravě dat/cílů levelu** spusť „Jde to vůbec vyhrát?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.

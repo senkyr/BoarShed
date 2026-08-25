@@ -118,7 +118,8 @@ dvojice), paleta seskupená po třídách s legendou v patičce, tišší mří�
 požadavky „2 / 5“ + segmentový ukazatel + konflikt s důvodem, lišta s ikonami a stavovou tečkou,
 a mobil: hlavička na dva řádky + „Více“, třídy jako select, paleta jen aktivní třídy zalomená do
 řádků, lišta na jeden řádek, překryvy pod sebou. Od 25. 8. 2026 jsou požadavky sbalovací pruh
-nahoře ve všech šířkách (mobil rozevřený, desktop sklapnutý), ne třetí sloupec ani proužek u lišty.
+nahoře ve všech šířkách, ne třetí sloupec ani proužek u lišty; rozevřený je jen v prvním levelu,
+dál sklapnutý.
 Tři zásady od Jakuba, které to řídí: stránka nesmí scrollovat do stran, ovládání dole musí být
 vždy na obrazovce (rezervu počítá JS z výšky doku) a scroll k dolním kartičkám nesmí odvézt rozvrh
 a úkoly z obrazu (na desktopu je přilepený a scrolluje uvnitř zásobník — požadavky od 25. 8. 2026

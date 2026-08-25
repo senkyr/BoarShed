@@ -20,7 +20,7 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
 
 ## Funkce
 
-- **Požadavky** jako sbalovací pruh nahoře (na telefonu rovnou rozevřený, na desktopu sklapnutý),
+- **Požadavky** jako sbalovací pruh nahoře (rozevřený v prvním levelu, dál sklapnutý),
   pod ním **Kartičky | Rozvrh**; responzivní (pod 1100 px nad sebe; na telefonu paleta jen
   aktivní třídy, nic nescrolluje do stran).
 - **Rozvrh „na šířku" na desktopu** (dny v řádcích, hodiny ve sloupcích); na úzkém
