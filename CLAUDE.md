@@ -202,6 +202,12 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   v `#goalsSummary`, ťuknutí rozbalí, výhra rozbalí sama a **doscrolluje k němu**
   (`scrollIntoView`, jen při přechodu do výhry — nahoře už není pod rukou jako dřív dole);
   lišta na jeden řádek ikon + stavový řádek; rozbalený proužek se s novým levelem sbalí.
+  **Výjimka od 25. 8. 2026:** krátký popisek „Jde to?“ → „Jde to vůbec?“ (Jakub) je o ~43 px
+  širší a na **360 a 375 px** už se čtvrté tlačítko na řádek nevejde — lišta se zalomí na dva
+  řádky ikon (87 → 137 px). Od 390 px výš (iPhone 12+) i pod 320 px je stav stejný jako dřív.
+  Změřeno v iframu po šířkách; užší mezery ani menší odsazení to nespraví (`#randomBtn` má
+  `flex:1`, takže se místo toho smrskne na 52 px a přijde o popisek). Nic se neztrácí —
+  rezerva pod obsahem se počítá z reálné výšky lišty, takže obsah nezakryje.
   Do rezervy `--dock-h` se panel **nepočítá** — ta je jen z výšky lišty. V liště nemá žádné tlačítko zvýraznění —
   „Náhodně rozmístit" je pomůcka, ne hlavní akce (Jakub, 21. 8. 2026). Překryvy jdou transponovaně **pod sebe do bloku** (`.lanegrp`, řádky hodin se natáhnou)
   — pruhy vedle sebe se v 58px sloupci rozsypaly na písmena.
