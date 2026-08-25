@@ -230,7 +230,11 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   (`.pgroup`: v Třídách čtvereček oboru + třída, v Učitelích/Učebnách jméno/učebna; počet; skupina
   zobrazeného rozvrhu první a plná, ostatní tlumené `.dim` — klik na tlumenou přepne rozvrh na její
   skupinu; pauza mimo Třídy ve zvláštní tlumené skupině), plní počítadlo `#palCount`
-  a legendu oborů v patičce palety (`#legend` — patří k barvám, které vysvětluje). `renderGoals`
+  a legendu oborů v patičce palety (`#legend` — patří k barvám, které vysvětluje).
+  `renderSchedule` plní **dovětek v hlavičce sekce Rozvrh** (`#schedOrient`): „na šířku“ na
+  desktopu, „na výšku“ na úzkém displeji — týž tvar i styl (`.muted`) jako počet zbývajících
+  kartiček u zásobníku, ať je orientace mřížky pojmenovaná a ne jen viditelná (Jakub, 25. 8. 2026).
+  `renderGoals`
   kreslí „2 / 5 požadavků“ + segmentový ukazatel (`.segbar`, dílek = požadavek), konfliktní řádek
   s důvodem (`conflictSummary()`: první obsazená buňka → „Út 2. h — 1.IT má dvě hodiny naráz
   (Matematika, Web)“), souhrn do hlavičky panelu, počítadlo v hlavičce a barvu tečky ve stavovém
@@ -327,7 +331,8 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   fixní lišta nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
   ukazuje jen aktivní třídu, kartička zvednutá z rozvrhu se vrátí ťuknutím na zásobník, překryv
   dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, pruh požadavků je na mobilu
-  v prvním levelu rovnou rozevřený (ve vyšších sklapnutý) a ťuknutím se přepne, a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
+  v prvním levelu rovnou rozevřený (ve vyšších sklapnutý) a ťuknutím se přepne, hlavička Rozvrhu
+  hlásí „na výšku“ (na desktopu „na šířku“), a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.
   Dotyk otestuj i na reálném zařízení, ne jen v emulaci.
 - **Po úpravě dat/cílů levelu** spusť „Jde to vůbec vyhrát?" (nebo `checkSolvable("lX")`
   v konzoli) — ať víš, že je level vůbec vyhratelný a jak je těžký.

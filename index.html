@@ -323,7 +323,7 @@ try{
   </section>
 
   <section class="col" id="colSchedule">
-    <div class="col-head"><h2>Rozvrh</h2><div class="tabs" id="tabs" style="margin-left:auto"></div></div>
+    <div class="col-head"><h2>Rozvrh</h2><span class="muted" id="schedOrient"></span><div class="tabs" id="tabs" style="margin-left:auto"></div></div>
     <div class="col-body" id="schedule"></div>
   </section>
 
@@ -1414,6 +1414,8 @@ function setGoalsDefault(){ document.getElementById("colGoals").classList.toggle
 function renderSchedule(reasons){
   const box=document.getElementById("schedule"); box.textContent="";
   const horiz=isHorizontal();
+  // dovětek v hlavičce sekce, ve stejném stylu jako počet zbývajících kartiček u zásobníku
+  const orient=document.getElementById("schedOrient"); if(orient) orient.textContent=horiz?"na šířku":"na výšku";
   // hraje se ve všech třech pohledech: kartička jde položit jen do rozvrhu, který je vidět, a jen když
   // do něj patří (`belongsHere`) — jinak by padala „naslepo“ mimo obraz (oprava 9. 8. 2026)
   LVL.weeks.forEach((wname,w)=>{
