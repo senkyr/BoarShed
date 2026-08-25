@@ -86,18 +86,22 @@ try{
      Sklapnutý drží jen souhrn („2 / 5 …“) na jednom řádku, ťuknutí na hlavičku rozbalí.
      Výchozí stav dělá loadLevel(): na mobilu rozevřený (ať je hráč nepřehlédne, stejně
      pak pracuje dole), na desktopu sklapnutý (ať nebere místo rozvrhu). */
-  /* sklapnutý pruh je přilepený k hornímu okraji — souhrn „2 / 5 …“ má být na očích pořád,
-     i když hráč scrolluje dolů k rozvrhu (Jakub, 25. 8. 2026). Rozbalený sticky není: to už
-     je obsah ke čtení, ne stavový řádek, a přilepený by ukrojil půl obrazovky. */
-  #colGoals{order:-1;flex:0 0 100%;width:100%;position:sticky;top:0;z-index:20}
-  #colGoals.open{position:static}
+  /* Pruh požadavků: k hornímu okraji je přilepená VŽDY jen hlavička se souhrnem, otevřená
+     i zavřená. Tělo se rozvine jako překryv pod ní (position:absolute), takže obsah pod pruhem
+     se nehne ani o pixel — a zavření vrátí hráči přesně tentýž obraz. Rozbalování v toku
+     panel odlepovalo, vystřelilo ho nad viewport a stránka pod rukou uskočila (Jakub,
+     25. 8. 2026 — varianta B z návrhového plátna). Pozadí a stín drží pořád: pod přilepenou
+     hlavičkou projíždí zásobník i rozvrh. */
+  #colGoals{order:-1;flex:0 0 100%;width:100%;position:sticky;top:0;z-index:20;
+    background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.10)}
   #colGoals .col-head{cursor:pointer;padding:8px 12px}
   #colGoals .col-head h2{display:none}
   #colGoals .col-body{display:none}
-  #colGoals.open .col-body{display:block}
+  #colGoals.open .col-body{display:block;position:absolute;left:-1px;right:-1px;top:100%;z-index:21;
+    background:var(--surface);border:1px solid var(--line);border-top:0;
+    border-radius:0 0 var(--radius) var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.16);
+    max-height:60vh;overflow:auto;overscroll-behavior:contain}
   #colGoals.open .gcaret{transform:rotate(180deg)}
-  /* přilepený pruh nesmí být průhledný — pod ním projíždí zásobník i rozvrh */
-  #colGoals:not(.open){background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.10)}
   /* zásobník je přilepený k hornímu okraji a scrolluje UVNITŘ sebe, takže cesta ke kartičkám
      dole neodveze rozvrh z obrazu (Jakub, 21. 8. 2026). Výška = okno minus dok; stránkou
      se scrolluje jen kvůli rozvrhu (dva týdny). Požadavky sticky nejsou — od 25. 8. 2026
@@ -1314,16 +1318,16 @@ function render(){
   updateUndoBtns(); updateDock();
 }
 // fixní lišta = „dok“; obsah dostane rezervu podle její skutečné výšky (požadavky do ní nepatří,
-// stojí nahoře v toku). Navíc --goals-h = výška sklapnutého pruhu požadavků, o kterou se musí
-// odsadit přilepený zásobník; rozbalený pruh sticky není, takže je 0.
+// stojí nahoře v toku). Navíc --goals-h = výška přilepené hlavičky požadavků, o kterou se musí
+// odsadit přilepený zásobník. Rozbalené tělo je position:absolute, takže výšku pruhu nemění —
+// proměnná je stejná otevřeno i zavřeno.
 function updateDock(){
   const tb=document.getElementById("toolbar"), g=document.getElementById("colGoals");
   if(!tb) return;
   const tbh=tb.offsetHeight;
   document.documentElement.style.setProperty("--tb-h",tbh+"px");
   document.documentElement.style.setProperty("--dock-h",tbh+"px");
-  document.documentElement.style.setProperty("--goals-h",
-    (g&&!g.classList.contains("open")?g.offsetHeight:0)+"px");
+  document.documentElement.style.setProperty("--goals-h",(g?g.offsetHeight:0)+"px");
 }
 
 function plural(n,one,few,many){ return n+" "+(n===1?one:n<5?few:many); }
@@ -1591,9 +1595,15 @@ function renderGoals(reasons){
       : "Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉", nextBtn);
     box.append(winBox);
     if(!S.assisted) markDone(LVL.id);
-    { // pruh požadavků stojí nahoře, tak se k výhře (a tlačítku „Dál“) doscrolluje
+    { // pruh je přilepený nahoře, takže překryv vyjede rovnou do obrazu; banner je ale na konci
+      // těla, které se scrolluje samo, takže k němu ještě musíme sjet uvnitř překryvu.
+      // Odklad je nutný: hned po add("open") překryv ještě nemá layout a scroll tiše neudělá nic
+      // (tlačítko „Dál“ pak zůstane pod okrajem). requestAnimationFrame nestačí — běží před
+      // přepočtem layoutu; setTimeout(0) až po něm. Změřeno 25. 8. 2026.
       const g=document.getElementById("colGoals");
-      if(!g.classList.contains("open")){ g.classList.add("open"); winBox.scrollIntoView({behavior:"smooth",block:"center"}); }
+      if(!g.classList.contains("open")){ g.classList.add("open"); updateDock();
+        const gb=g.querySelector(".col-body");
+        if(gb) setTimeout(()=>gb.scrollTo({top:gb.scrollHeight,behavior:"smooth"}),0); }
     }
   }
 }
@@ -2109,7 +2119,11 @@ window.addEventListener("DOMContentLoaded",()=>{
   moreBtn.onclick=ev=>{ ev.stopPropagation(); const o=!more.classList.contains("open"); more.classList.toggle("open",o); moreBtn.setAttribute("aria-expanded",o?"true":"false"); };
   more.addEventListener("click",closeMore); document.addEventListener("click",ev=>{ if(!ev.target.closest("#moreMenu,#moreBtn")) closeMore(); });
   // požadavky na mobilu: sbalený proužek, ťuknutí rozbalí
-  document.getElementById("goalsHead").onclick=()=>{ document.getElementById("colGoals").classList.toggle("open"); updateDock(); };
+  document.getElementById("goalsHead").onclick=ev=>{ ev.stopPropagation();
+    document.getElementById("colGoals").classList.toggle("open"); updateDock(); };
+  // překryv leží přes rozvrh, takže klik mimo něj ho zavře — jako u nabídky „Více“
+  document.addEventListener("click",ev=>{ const g=document.getElementById("colGoals");
+    if(g.classList.contains("open") && !ev.target.closest("#colGoals")){ g.classList.remove("open"); updateDock(); } });
   // ťuknutí na zásobník (mimo kartičku) vrací zvednutou kartičku z rozvrhu
   document.getElementById("colPalette").addEventListener("click",ev=>{ if(ev.target.closest(".card")) return; if(S.selected&&S.pickedFrom) returnToPalette(); });
 

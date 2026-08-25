@@ -122,8 +122,9 @@ nahoře ve všech šířkách, ne třetí sloupec ani proužek u lišty; rozevř
 dál sklapnutý. Hlavička sekce Rozvrh nese dovětek „na šířku“ / „na výšku“ podle orientace mřížky.
 Tři zásady od Jakuba, které to řídí: stránka nesmí scrollovat do stran, ovládání dole musí být
 vždy na obrazovce (rezervu počítá JS z výšky doku) a scroll k dolním kartičkám nesmí odvézt rozvrh
-a úkoly z obrazu (na desktopu je přilepený a scrolluje uvnitř zásobník — požadavky od 25. 8. 2026
-sticky nejsou, sklapnutý pruh nahoře nemá co držet na očích; ve sloupcích
+a úkoly z obrazu (na desktopu je přilepený a scrolluje uvnitř zásobník; požadavky drží od
+25. 8. 2026 přilepená hlavička se souhrnem, jejíž tělo se rozvine jako překryv, takže obsah pod
+ní se nehne; ve sloupcích
 pod sebou ukazuje paleta jen aktivní skupinu). Téhož dne: drop zóny zelené místo vínové (vínová je
 konflikt), lišta bez zvýrazněného tlačítka, „Řešitelnost?" → „Jde to vůbec vyhrát?", a hraní ve
 všech třech pohledech — zvednutí kartičky v Učitelích zůstává u učitele, zásobník je seskupený

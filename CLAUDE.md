@@ -229,17 +229,25 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     **překlopení orientace stav už nepřenastavuje**, když na šířce nezáleží.
   - **Výhra pruh rozbalí a doscrolluje na banner** (`winBox.scrollIntoView`, jen při přechodu
     do výhry) — nahoře není pod rukou jako dřív dole u lišty.
-  - **Sklapnutý pruh je přilepený k hornímu okraji** (`position:sticky;top:0`, ve všech
-    šířkách) — souhrn „2 / 5 …“ má být na očích i při scrollu dolů k rozvrhu (Jakub,
-    25. 8. 2026). **Rozbalený sticky není** (`#colGoals.open{position:static}`): to už je obsah
-    ke čtení, ne stavový řádek, a přilepený by ukrojil půl obrazovky. Přilepený pruh dostává
-    plné pozadí a stín, jinak by pod ním prosvítal projíždějící obsah.
-  - **Zásobník se lepí POD pruh, ne k okraji okna** (`#colPalette{top:calc(var(--goals-h) + 14px)}`,
+  - **Přilepená je VŽDY jen hlavička se souhrnem** (`position:sticky;top:0`, otevřeno i zavřeno,
+    ve všech šířkách), s plným pozadím a stínem — pod ní projíždí zásobník i rozvrh.
+  - **Tělo se rozvine jako PŘEKRYV pod hlavičkou**, ne v toku: `#colGoals.open .col-body` je
+    `position:absolute;top:100%` s vlastním `max-height:60vh` a scrollem. Proto se obsah pod
+    pruhem nehne ani o pixel a zavření vrátí hráči přesně tentýž obraz (Jakub, 25. 8. 2026 —
+    varianta B z návrhového plátna). **Předchozí pokus rozbalovat v toku byl chyba:** panel se
+    odlepil, vystřelil nad viewport a stránka pod rukou uskočila o 367 px — z rozbaleného
+    obsahu bylo vidět 0 px. Zavírá i klik mimo `#colGoals` (jako u nabídky „Více“); `goalsHead`
+    proto `stopPropagation()`.
+  - **Výherní banner je na konci těla, které se scrolluje samo** — po `add("open")` k němu
+    `gb.scrollTo({top:scrollHeight})`, jinak zůstane pod okrajem překryvu. **Odklad je nutný
+    a `requestAnimationFrame` na něj NESTAČÍ** (běží před přepočtem layoutu, scroll tiše neudělá
+    nic) — musí to být `setTimeout(…,0)`. Změřeno 25. 8. 2026.
+  - **Zásobník se lepí POD hlavičku, ne k okraji okna** (`#colPalette{top:calc(var(--goals-h) + 14px)}`,
     ≥ 1101 px) — jinak mu pruh překryje hlavičku „KARTIČKY / n zbývá“. `--goals-h` počítá
-    `updateDock()` z reálné výšky sklapnutého pruhu (rozbalený = 0, protože sticky není);
-    `#goalsHead.onclick` ho proto musí přepočítat. Stejnou proměnnou odečítá i `max-height`
-    zásobníku. Tím se zásada z 21. 8. 2026 („zásobník i požadavky přilepené a scrollují
-    uvnitř“) vrací v platnost — jen požadavky drží místo vnitřního scrollu sklapnutí.
+    `updateDock()` z reálné výšky pruhu; ta je **stejná otevřeno i zavřeno**, protože tělo je
+    mimo tok. Stejnou proměnnou odečítá i `max-height` zásobníku. Zásada z 21. 8. 2026
+    („zásobník i požadavky přilepené a scrollují uvnitř“) tím platí dál — požadavky drží místo
+    vnitřního scrollu sklapnutí do souhrnu.
   - Do rezervy `--dock-h` se pruh **nepočítá** — ta je jen z výšky lišty.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`
   (+ `updateDock()`). `renderPalette` skládá kartičky do **skupin podle entity aktuálního pohledu**
