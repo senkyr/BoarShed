@@ -227,9 +227,17 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
     **překlopení orientace stav už nepřenastavuje**, když na šířce nezáleží.
   - **Výhra pruh rozbalí a doscrolluje na banner** (`winBox.scrollIntoView`, jen při přechodu
     do výhry) — nahoře není pod rukou jako dřív dole u lišty.
-  - **Sticky je jen zásobník** (`#colPalette`, ≥ 1101 px). Požadavky sticky nejsou — sklapnutý
-    pruh nemá co držet na očích. Tím padá půlka zásady z 21. 8. 2026 („zásobník i požadavky
-    přilepené“); zbytek platí dál.
+  - **Sklapnutý pruh je přilepený k hornímu okraji** (`position:sticky;top:0`, ve všech
+    šířkách) — souhrn „2 / 5 …“ má být na očích i při scrollu dolů k rozvrhu (Jakub,
+    25. 8. 2026). **Rozbalený sticky není** (`#colGoals.open{position:static}`): to už je obsah
+    ke čtení, ne stavový řádek, a přilepený by ukrojil půl obrazovky. Přilepený pruh dostává
+    plné pozadí a stín, jinak by pod ním prosvítal projíždějící obsah.
+  - **Zásobník se lepí POD pruh, ne k okraji okna** (`#colPalette{top:calc(var(--goals-h) + 14px)}`,
+    ≥ 1101 px) — jinak mu pruh překryje hlavičku „KARTIČKY / n zbývá“. `--goals-h` počítá
+    `updateDock()` z reálné výšky sklapnutého pruhu (rozbalený = 0, protože sticky není);
+    `#goalsHead.onclick` ho proto musí přepočítat. Stejnou proměnnou odečítá i `max-height`
+    zásobníku. Tím se zásada z 21. 8. 2026 („zásobník i požadavky přilepené a scrollují
+    uvnitř“) vrací v platnost — jen požadavky drží místo vnitřního scrollu sklapnutí.
   - Do rezervy `--dock-h` se pruh **nepočítá** — ta je jen z výšky lišty.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`
   (+ `updateDock()`). `renderPalette` skládá kartičky do **skupin podle entity aktuálního pohledu**

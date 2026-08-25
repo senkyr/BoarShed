@@ -86,18 +86,27 @@ try{
      Sklapnutý drží jen souhrn („2 / 5 …“) na jednom řádku, ťuknutí na hlavičku rozbalí.
      Výchozí stav dělá loadLevel(): na mobilu rozevřený (ať je hráč nepřehlédne, stejně
      pak pracuje dole), na desktopu sklapnutý (ať nebere místo rozvrhu). */
-  #colGoals{order:-1;flex:0 0 100%;width:100%}
+  /* sklapnutý pruh je přilepený k hornímu okraji — souhrn „2 / 5 …“ má být na očích pořád,
+     i když hráč scrolluje dolů k rozvrhu (Jakub, 25. 8. 2026). Rozbalený sticky není: to už
+     je obsah ke čtení, ne stavový řádek, a přilepený by ukrojil půl obrazovky. */
+  #colGoals{order:-1;flex:0 0 100%;width:100%;position:sticky;top:0;z-index:20}
+  #colGoals.open{position:static}
   #colGoals .col-head{cursor:pointer;padding:8px 12px}
   #colGoals .col-head h2{display:none}
   #colGoals .col-body{display:none}
   #colGoals.open .col-body{display:block}
   #colGoals.open .gcaret{transform:rotate(180deg)}
+  /* přilepený pruh nesmí být průhledný — pod ním projíždí zásobník i rozvrh */
+  #colGoals:not(.open){background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.10)}
   /* zásobník je přilepený k hornímu okraji a scrolluje UVNITŘ sebe, takže cesta ke kartičkám
      dole neodveze rozvrh z obrazu (Jakub, 21. 8. 2026). Výška = okno minus dok; stránkou
      se scrolluje jen kvůli rozvrhu (dva týdny). Požadavky sticky nejsou — od 25. 8. 2026
      jsou pruh nahoře, sklapnutý na jeden řádek, takže není co držet na očích. */
   @media(min-width:1101px){
-    #colPalette{position:sticky;top:14px;max-height:calc(100vh - var(--dock-h,80px) - 28px);display:flex;flex-direction:column}
+    /* zásobník se lepí POD sklapnutý pruh požadavků (--goals-h z JS), ne k okraji okna —
+       jinak mu přilepený pruh překryje hlavičku */
+    #colPalette{position:sticky;top:calc(var(--goals-h,0px) + 14px);
+      max-height:calc(100vh - var(--goals-h,0px) - var(--dock-h,80px) - 28px);display:flex;flex-direction:column}
     #colPalette .col-head,#colPalette .col-foot{flex-shrink:0}
     #colPalette .col-body{overflow:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain}
   }
@@ -1304,14 +1313,17 @@ function render(){
   renderPalette(); renderTabs(); renderSchedule(conflicts); renderGoals(conflicts);
   updateUndoBtns(); updateDock();
 }
-// fixní lišta = „dok“; obsah dostane rezervu podle její skutečné výšky
-// (požadavky do rezervy nepatří — na mobilu stojí v toku nahoře, ne nad lištou)
+// fixní lišta = „dok“; obsah dostane rezervu podle její skutečné výšky (požadavky do ní nepatří,
+// stojí nahoře v toku). Navíc --goals-h = výška sklapnutého pruhu požadavků, o kterou se musí
+// odsadit přilepený zásobník; rozbalený pruh sticky není, takže je 0.
 function updateDock(){
-  const tb=document.getElementById("toolbar");
+  const tb=document.getElementById("toolbar"), g=document.getElementById("colGoals");
   if(!tb) return;
   const tbh=tb.offsetHeight;
   document.documentElement.style.setProperty("--tb-h",tbh+"px");
   document.documentElement.style.setProperty("--dock-h",tbh+"px");
+  document.documentElement.style.setProperty("--goals-h",
+    (g&&!g.classList.contains("open")?g.offsetHeight:0)+"px");
 }
 
 function plural(n,one,few,many){ return n+" "+(n===1?one:n<5?few:many); }
@@ -2097,7 +2109,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   moreBtn.onclick=ev=>{ ev.stopPropagation(); const o=!more.classList.contains("open"); more.classList.toggle("open",o); moreBtn.setAttribute("aria-expanded",o?"true":"false"); };
   more.addEventListener("click",closeMore); document.addEventListener("click",ev=>{ if(!ev.target.closest("#moreMenu,#moreBtn")) closeMore(); });
   // požadavky na mobilu: sbalený proužek, ťuknutí rozbalí
-  document.getElementById("goalsHead").onclick=()=>{ document.getElementById("colGoals").classList.toggle("open"); };
+  document.getElementById("goalsHead").onclick=()=>{ document.getElementById("colGoals").classList.toggle("open"); updateDock(); };
   // ťuknutí na zásobník (mimo kartičku) vrací zvednutou kartičku z rozvrhu
   document.getElementById("colPalette").addEventListener("click",ev=>{ if(ev.target.closest(".card")) return; if(S.selected&&S.pickedFrom) returnToPalette(); });
 
