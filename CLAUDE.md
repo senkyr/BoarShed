@@ -198,12 +198,18 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   class="tabsel">`, paleta jen aktivní třídy zalomená do řádků (ostatní třídy počtem), kartičky
   v rozvrhu bez × (vrací se tažením nebo ťuknutím na zásobník — `returnToPalette()`, platí i na
   desktopu); lišta na jeden řádek ikon + stavový řádek.
-  **Výjimka od 25. 8. 2026:** krátký popisek „Jde to?“ → „Jde to vůbec?“ (Jakub) je o ~43 px
-  širší a na **360 a 375 px** už se čtvrté tlačítko na řádek nevejde — lišta se zalomí na dva
-  řádky ikon (87 → 137 px). Od 390 px výš (iPhone 12+) i pod 320 px je stav stejný jako dřív.
-  Změřeno v iframu po šířkách; užší mezery ani menší odsazení to nespraví (`#randomBtn` má
-  `flex:1`, takže se místo toho smrskne na 52 px a přijde o popisek). Nic se neztrácí —
-  rezerva pod obsahem se počítá z reálné výšky lišty, takže obsah nezakryje.
+  **Výjimka od 25. 8. 2026 — na telefonech je lišta dvouřádková.** Dvě Jakubova přání ji
+  postupně přetlačila: „Jde to?“ → „Jde to vůbec?“ (+43 px) a krátký popisek „Smazat“
+  u `#clearBtn` (+~55 px), aby byla všechna tři významová tlačítka rovnocenná jako na desktopu.
+  Čtyři tlačítka s popisky potřebují ~468 px, takže se **pod 430 px** nevejdou na jeden řádek:
+  lišta má 87 px jen od 430 px výš, jinak 137 px (a pod 320 px 154 px). Zalomí se jako
+  `[↶↷][Smazat][Náhodně]` / `[Jde to vůbec?]`. Změřeno v iframu po šířkách (320–819).
+  Zkoušené alternativy nepomohly: užší mezery a menší odsazení ušetří ~14 px z potřebných ~78,
+  `#colGoals`-styl „undo/redo na vlastní řádek“ dá sice hezčí `[↶↷]` / `[tři tlačítka]`, ale až
+  od 412 px — na 360–390 px z toho udělá **tři** řádky (187 px). Nic se neztrácí: rezerva pod
+  obsahem se počítá z reálné výšky lišty, takže obsah nezakryje.
+  **Pozor při měření:** jeden iframe pro víc variant zašpiní stav (zbylý `<style>`, jiná šířka)
+  a hlásí přetečení textu, které na čistém načtení není. Měř na čerstvém iframu.
   V liště nemá žádné tlačítko zvýraznění —
   „Náhodně rozmístit" je pomůcka, ne hlavní akce (Jakub, 21. 8. 2026). Překryvy jdou transponovaně **pod sebe do bloku** (`.lanegrp`, řádky hodin se natáhnou)
   — pruhy vedle sebe se v 58px sloupci rozsypaly na písmena.
