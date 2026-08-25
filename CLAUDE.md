@@ -190,16 +190,19 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
 - **LAYOUT A DVĚ ZÁSADY (Jakub, 21. 8. 2026):** (1) **stránka nikdy nescrolluje do stran** —
   rozvrh má sloupce `minmax(0,1fr)`, paleta zalamuje, `html,body{overflow-x:hidden}` je jen pojistka;
   (2) **ovládání dole je vždy na obrazovce** — lišta je fixní a rezervu pod obsahem počítá
-  `updateDock()` z její skutečné výšky (`--tb-h`, `--dock-h`; na mobilu + sbalený panel požadavků),
-  ne media queries. Hlavička: titul | level (`<select class="lvlsel">` vínově jako odkaz) +
+  `updateDock()` z její skutečné výšky (`--tb-h`, `--dock-h`), ne media queries.
+  Ovládání = lišta; požadavky jsou obsah a od 25. 8. 2026 stojí na mobilu nahoře v toku. Hlavička: titul | level (`<select class="lvlsel">` vínově jako odkaz) +
   počítadlo `#placedBadge` · popis levelu pod tím · vpravo Editor, Uložit a ikonová dvojice ⓘ ◐
   (`.btngroup`). **Úzký displej (< 820 px, stejná hranice jako překlopení rozvrhu):** hlavička na
   dva řádky, Editor a Uložit v nabídce „Více“ (`#moreMenu`), záložky entit jako `<select
   class="tabsel">`, paleta jen aktivní třídy zalomená do řádků (ostatní třídy počtem), kartičky
   v rozvrhu bez × (vrací se tažením nebo ťuknutím na zásobník — `returnToPalette()`, platí i na
-  desktopu), požadavky jako **fixní sbalený proužek** nad lištou (`#colGoals` se souhrnem
-  v `#goalsSummary`, ťuknutí rozbalí, výhra rozbalí sama), lišta na jeden řádek ikon + stavový
-  řádek; rozbalený proužek se s novým levelem sbalí. V liště nemá žádné tlačítko zvýraznění —
+  desktopu), požadavky jako **sbalený proužek nahoře** — `#colGoals{order:-1}`, tedy první blok v toku,
+  nad zásobníkem i rozvrhem (Jakub, 25. 8. 2026; dřív fixní proužek nad lištou). Souhrn
+  v `#goalsSummary`, ťuknutí rozbalí, výhra rozbalí sama a **doscrolluje k němu**
+  (`scrollIntoView`, jen při přechodu do výhry — nahoře už není pod rukou jako dřív dole);
+  lišta na jeden řádek ikon + stavový řádek; rozbalený proužek se s novým levelem sbalí.
+  Do rezervy `--dock-h` se panel **nepočítá** — ta je jen z výšky lišty. V liště nemá žádné tlačítko zvýraznění —
   „Náhodně rozmístit" je pomůcka, ne hlavní akce (Jakub, 21. 8. 2026). Překryvy jdou transponovaně **pod sebe do bloku** (`.lanegrp`, řádky hodin se natáhnou)
   — pruhy vedle sebe se v 58px sloupci rozsypaly na písmena.
 - **RENDER**: `render()` → `renderPalette / renderTabs / renderSchedule / renderGoals`
@@ -301,7 +304,7 @@ rozsah dne) jsou zapečené v enginu, **ne v datech**.
   Ověř fér ✓ (výhra přes „Náhodně + zkusit cíle" ukáže banner „poskládal řešič" bez ✓;
   ruční tah pak povýší na pravou výhru) a otevři ⓘ O hře. Projdi světlý i tmavý motiv
   a úzké okno (< 820 px): stránka nesmí scrollovat do stran (`scrollWidth ≤ innerWidth`, i v l7),
-  fixní lišta ani proužek požadavků nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
+  fixní lišta nesmí zakrývat spodek obsahu (rezerva z `--dock-h`), paleta
   ukazuje jen aktivní třídu, kartička zvednutá z rozvrhu se vrátí ťuknutím na zásobník, překryv
   dvou kartiček je pod sebou a čitelný, „Více“ otevře Editor/Uložit, proužek požadavků se rozbalí
   a modál Editoru se vejde do výšky okna. Žádné chyby v konzoli.

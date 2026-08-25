@@ -117,7 +117,7 @@ a rozvržení, šest cílených úprav: hlavička (level v titulku, počítadlo 
 dvojice), paleta seskupená po třídách s legendou v patičce, tišší mřížka se štítky hodin a dnů,
 požadavky „2 / 5“ + segmentový ukazatel + konflikt s důvodem, lišta s ikonami a stavovou tečkou,
 a mobil: hlavička na dva řádky + „Více“, třídy jako select, paleta jen aktivní třídy zalomená do
-řádků, požadavky jako fixní sbalený proužek nad lištou, lišta na jeden řádek, překryvy pod sebou.
+řádků, požadavky jako sbalený proužek nahoře (nad zásobníkem i rozvrhem), lišta na jeden řádek, překryvy pod sebou.
 Tři zásady od Jakuba, které to řídí: stránka nesmí scrollovat do stran, ovládání dole musí být
 vždy na obrazovce (rezervu počítá JS z výšky doku) a scroll k dolním kartičkám nesmí odvézt rozvrh
 a úkoly z obrazu (na desktopu jsou zásobník a požadavky přilepené a scrollují uvnitř; ve sloupcích

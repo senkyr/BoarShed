@@ -68,7 +68,7 @@ try{
   #moreBtn{display:none}
   #aboutBtn,#themeBtn{padding:7px 10px}
 
-  /* rezervu pod obsahem počítá JS z výšky fixní lišty (+ sbaleného panelu požadavků na mobilu): --dock-h.
+  /* rezervu pod obsahem počítá JS z výšky fixní lišty: --dock-h.
      Ovládání dole musí být vždy na obrazovce, nikdy se k němu nescrolluje. */
   .wrap{display:flex;gap:14px;align-items:flex-start;padding:14px 18px calc(var(--dock-h,80px) + 20px);max-width:1500px;margin:0 auto}
   html{overflow-x:hidden} /* stránka nesmí scrollovat do stran — obsah se skládá do šířky (rozvrh 1fr, paleta zalamuje).
@@ -94,7 +94,7 @@ try{
   @media(max-width:1100px){.wrap{flex-direction:column}
     #colPalette,#colSchedule,#colGoals{flex:1 1 auto;width:100%;min-width:0}}
   /* ÚZKÝ DISPLEJ (stejná hranice jako překlopení rozvrhu): hlavička na dva řádky, paleta jen aktivní
-     třídy zalomená do řádků, rozvrh bez ×, požadavky jako fixní sbalený proužek nad lištou, lišta na jeden řádek ikon */
+     třídy zalomená do řádků, rozvrh bez ×, požadavky jako sbalený proužek nahoře nad zásobníkem, lišta na jeden řádek ikon */
   @media(max-width:819px){
     header{grid-template-columns:1fr auto;grid-template-areas:"title ctrls" "lvl lvl";column-gap:8px;row-gap:8px;padding:10px 14px}
     header .title{font-size:16px}
@@ -106,10 +106,10 @@ try{
     .more.open{display:flex}
     #moreBtn{display:inline-flex}
     .wrap{padding-left:14px;padding-right:14px}
-    #colGoals{position:fixed;left:14px;right:14px;bottom:calc(var(--tb-h,84px) + 8px);z-index:29;width:auto}
+    #colGoals{order:-1} /* požadavky nahoru: nad zásobník i rozvrh (Jakub, 25. 8. 2026) */
     #colGoals .col-head{cursor:pointer;padding:8px 12px}
     #colGoals .col-head h2{display:none}
-    #colGoals .col-body{display:none;max-height:45vh;overflow:auto}
+    #colGoals .col-body{display:none} /* v toku scrolluje stránkou — vlastní okno bylo kvůli fixnímu proužku */
     #colGoals.open .col-body{display:block}
     #colGoals.open .gcaret{transform:rotate(180deg)}
     .toolbar{padding:8px 14px 10px;gap:8px}
@@ -1302,14 +1302,14 @@ function render(){
   renderPalette(); renderTabs(); renderSchedule(conflicts); renderGoals(conflicts);
   updateUndoBtns(); updateDock();
 }
-// fixní lišta (+ na mobilu sbalené požadavky nad ní) = „dok“; obsah dostane rezervu podle jeho skutečné výšky
+// fixní lišta = „dok“; obsah dostane rezervu podle její skutečné výšky
+// (požadavky do rezervy nepatří — na mobilu stojí v toku nahoře, ne nad lištou)
 function updateDock(){
-  const tb=document.getElementById("toolbar"), g=document.getElementById("colGoals");
+  const tb=document.getElementById("toolbar");
   if(!tb) return;
-  const tbh=tb.offsetHeight, narrow=!isHorizontal();
-  const gh=narrow&&g?g.offsetHeight+8:0;
+  const tbh=tb.offsetHeight;
   document.documentElement.style.setProperty("--tb-h",tbh+"px");
-  document.documentElement.style.setProperty("--dock-h",(tbh+gh)+"px");
+  document.documentElement.style.setProperty("--dock-h",tbh+"px");
 }
 
 function plural(n,one,few,many){ return n+" "+(n===1?one:n<5?few:many); }
@@ -1564,13 +1564,16 @@ function renderGoals(reasons){
     const nextBtn=next
       ? el("button",{class:"next",onclick:()=>{ loadLevel(next.id); setStatus("Další level: "+next.name+"."); scrollTo(0,0); }},"Dál → "+next.name)
       : el("span",{class:"muted",style:{fontWeight:"500"}},"Tohle byl poslední level — kampaň je dohraná. Vlastní levely jde stavět v Editoru.");
-    if(S.assisted){ // fér ✓: výhru poskládanou řešičem/importem odznak nedostane
-      box.append(el("div",{class:"win"},"Rozvrh sedí — ale poskládal ho řešič (nebo import). ✓ se počítá jen za vlastnoruční výhru. 😏",nextBtn));
-    }else{
-      box.append(el("div",{class:"win"},"Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉",nextBtn));
-      markDone(LVL.id);
+    // fér ✓: výhru poskládanou řešičem/importem odznak nedostane
+    const winBox=el("div",{class:"win"},S.assisted
+      ? "Rozvrh sedí — ale poskládal ho řešič (nebo import). ✓ se počítá jen za vlastnoruční výhru. 😏"
+      : "Hotovo — rozvrh sedí a všechny požadavky jsou splněné. 🎉", nextBtn);
+    box.append(winBox);
+    if(!S.assisted) markDone(LVL.id);
+    if(!isHorizontal()){ // mobil: panel požadavků stojí nahoře, tak se k výhře (a tlačítku „Dál“) doscrolluje
+      const g=document.getElementById("colGoals");
+      if(!g.classList.contains("open")){ g.classList.add("open"); winBox.scrollIntoView({behavior:"smooth",block:"center"}); }
     }
-    if(!isHorizontal()) document.getElementById("colGoals").classList.add("open"); // na mobilu ať je výhra (a postup dál) vidět
   }
 }
 // kde a proč je konflikt: první obsazená buňka s víc kartičkami → „Út 2. h — 1.IT má dvě hodiny naráz (Matematika, Web)“
@@ -2085,7 +2088,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   moreBtn.onclick=ev=>{ ev.stopPropagation(); const o=!more.classList.contains("open"); more.classList.toggle("open",o); moreBtn.setAttribute("aria-expanded",o?"true":"false"); };
   more.addEventListener("click",closeMore); document.addEventListener("click",ev=>{ if(!ev.target.closest("#moreMenu,#moreBtn")) closeMore(); });
   // požadavky na mobilu: sbalený proužek, ťuknutí rozbalí
-  document.getElementById("goalsHead").onclick=()=>{ if(!isHorizontal()){ document.getElementById("colGoals").classList.toggle("open"); updateDock(); } };
+  document.getElementById("goalsHead").onclick=()=>{ if(!isHorizontal()) document.getElementById("colGoals").classList.toggle("open"); };
   // ťuknutí na zásobník (mimo kartičku) vrací zvednutou kartičku z rozvrhu
   document.getElementById("colPalette").addEventListener("click",ev=>{ if(ev.target.closest(".card")) return; if(S.selected&&S.pickedFrom) returnToPalette(); });
 
