@@ -1782,10 +1782,10 @@ const REPO_URL="https://github.com/senkyr/BoarShed";
 function aboutModal(){
   const ov=openOverlay(el("div",{class:"modal"},
     el("h3",{},"O hře"),
-    el("p",{},"BoarShed — skládání rozvrhu. In-joke pro kolegy z SPŠ. A pro všechny, kdo na rozvrhy nadávají: teď si ho zkus poskládat sám, chytráku."),
-    el("p",{},"Vzniklo v roce 2026 ve spolupráci s AI (Claude) — kód, návrh kampaně i vyladění obtížnosti. Každý level je balancovaný simulacemi: výhru dá náhodný platný rozvrh v ~10 % (level 0 · Rozjezd), u pozdějších levelů jen v setinách až desetinách procenta (finále „Celá škola“ se všemi 16 třídami ~0,2 %). Celá hra je jeden HTML soubor bez závislostí."),
-    REPO_URL?el("p",{},el("a",{href:REPO_URL,target:"_blank",rel:"noopener"},"Zdrojáky a celá historie vývoje")):null,
-    el("p",{class:"muted",style:{fontSize:"12px"}},"Pro zvídavé: F12 → konzole → await checkSolvable(\"l6\"). Vlastní levely jde stavět v Editoru a posílat odkazem."),
+    el("p",{},"BoarShed — hra na skládání rozvrhu. Pro všechny, kdo na rozvrhy nadávají. Zkuste si sami, jaké to je."),
+    el("p",{},"Vzniklo v létě 2026 ve spolupráci s AI (Claude). Náhodné seskládání dá výhru jen v 10 % případů u začátečního levelu, méně než 0,5 % u posledního."),
+    el("p",{},"Celá hra je jeden HTML soubor bez závislostí. Rozdělaná práce se ukládá přímo v prohlížeči. Vlastní levely můžete sdílet odkazem."),
+    REPO_URL?el("p",{},el("a",{href:REPO_URL,target:"_blank",rel:"noopener"},"Kompletní zdrojáky a historie vývoje na GitHubu")):null,
     el("div",{class:"row"},el("button",{onclick:()=>ov.close()},"Zavřít"))
   ));
 }
