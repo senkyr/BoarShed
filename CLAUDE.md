@@ -198,16 +198,18 @@ v **jediném souboru `index.html`** — čistý HTML + CSS + vanilla JS. Úplný
   class="tabsel">`, paleta jen aktivní třídy zalomená do řádků (ostatní třídy počtem), kartičky
   v rozvrhu bez × (vrací se tažením nebo ťuknutím na zásobník — `returnToPalette()`, platí i na
   desktopu); lišta na jeden řádek ikon + stavový řádek.
-  **Výjimka od 25. 8. 2026 — na telefonech je lišta dvouřádková.** Dvě Jakubova přání ji
-  postupně přetlačila: „Jde to?“ → „Jde to vůbec?“ (+43 px) a krátký popisek „Smazat“
-  u `#clearBtn` (+~55 px), aby byla všechna tři významová tlačítka rovnocenná jako na desktopu.
-  Čtyři tlačítka s popisky potřebují ~468 px, takže se **pod 430 px** nevejdou na jeden řádek:
-  lišta má 87 px jen od 430 px výš, jinak 137 px (a pod 320 px 154 px). Zalomí se jako
-  `[↶↷][Smazat][Náhodně]` / `[Jde to vůbec?]`. Změřeno v iframu po šířkách (320–819).
-  Zkoušené alternativy nepomohly: užší mezery a menší odsazení ušetří ~14 px z potřebných ~78,
-  `#colGoals`-styl „undo/redo na vlastní řádek“ dá sice hezčí `[↶↷]` / `[tři tlačítka]`, ale až
-  od 412 px — na 360–390 px z toho udělá **tři** řádky (187 px). Nic se neztrácí: rezerva pod
-  obsahem se počítá z reálné výšky lišty, takže obsah nezakryje.
+  **Rozpočet lišty na mobilu (změřeno 25. 8. 2026, iframe po šířkách 320–819).** Všechna tři
+  významová tlačítka mají krátký popisek (`Smazat` / `Náhodně` / `Jde to?`) — rovnocenná jako
+  na desktopu (Jakub). Vejdou se na jeden řádek jen tak tak: **`#checkBtn` smí být max ~73 px,
+  tedy 7 znaků.** „Jde to?“ (73 px) projde, „Vyhraju?“ (83 px) už ne — proto se `Jde to vůbec?`
+  (116 px) po zkušenosti vrátilo na `Jde to?`. Zkracovat `Smazat` ani `Náhodně` nemá smysl,
+  na zalomení to nemá vliv.
+  - **Od 390 px výš** je lišta jednořádková (87 px). **Na 360 a 375 px je dvouřádková (137 px)
+    a nespraví to nic** — ověřeno i s úplně odebraným popiskem `Smazat`. Pod 320 px 154 px.
+  - Zkoušené a zamítnuté: užší mezery a menší odsazení ušetří ~14 px z potřebných ~78;
+    „undo/redo na vlastní řádek“ dá hezčí `[↶↷]` / `[tři tlačítka]`, ale až od 412 px —
+    na 360–390 px z toho udělá **tři** řádky (187 px).
+  - Nic se neztrácí ani při zalomení: rezerva pod obsahem se počítá z reálné výšky lišty.
   **Pozor při měření:** jeden iframe pro víc variant zašpiní stav (zbylý `<style>`, jiná šířka)
   a hlásí přetečení textu, které na čistém načtení není. Měř na čerstvém iframu.
   V liště nemá žádné tlačítko zvýraznění —
