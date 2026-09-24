@@ -29,6 +29,8 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
   i na dotyku (na mobilu podržet ~200 ms a táhnout); bloky 1/2/3 h.
 - **Zpět / Znovu** (↶/↷, Ctrl+Z / Ctrl+Y); Esc nebo zrušené tažení vrací zvednutou
   kartičku na původní místo.
+- **Klávesnice** — Tab na kartičku, Enter/mezerník ji zvedne, Tab na zvýrazněnou buňku
+  a Enter ji položí; Delete vrátí položenou kartičku do zásobníku.
 - **Pohledy Třídy / Učitelé / Učebny** — hraje se ve všech třech: kartičku položíš jen do
   rozvrhu, který je vidět a do kterého patří; zásobník ukazuje kartičky zobrazeného rozvrhu
   plně, ostatní tlumeně.

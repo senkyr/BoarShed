@@ -129,7 +129,7 @@ pod sebou ukazuje paleta jen aktivní skupinu). Téhož dne: drop zóny zelené 
 konflikt), lišta bez zvýrazněného tlačítka, „Řešitelnost?" → „Jde to vůbec vyhrát?", a hraní ve
 všech třech pohledech — zvednutí kartičky v Učitelích zůstává u učitele, zásobník je seskupený
 podle entity pohledu; legenda s plnými názvy oborů a tlačítko „Dál →“ ve výherním banneru.
-Otevřené: klávesnicové ovládání.
+Klávesnicové ovládání doplněno při revizi 24. 9. 2026 (Tab na kartičku, Enter zvedne, Tab na zónu, Enter položí; Delete vrátí do zásobníku; Esc zruší výběr) — popis v CLAUDE.md.
 
 **Nařízená pauza (8/2026)** — každá třída má kartičku `Oběd` (`kind:"break"`, šrafovaná).
 Engine ji pustí jen do obědového okna (`LVL.breakWindow`, výchozí 4.–5. hodina) — tvrdé
