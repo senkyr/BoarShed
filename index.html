@@ -1907,9 +1907,9 @@ function loadLevel(id,doAutoload){
   HIST.undo.length=0; HIST.redo.length=0; // historie je per-level
   setGoalsDefault(); // nový level: rozevřený jen v prvním, dál sklapnutý
   const ready=applyGiven(), cur=LVL;
-  document.getElementById("lvlDesc").textContent=LVL.desc;
+  document.getElementById("lvlDesc").textContent=LVL.desc||""; // vlastní level popis mít nemusí (dřív se vypsalo „undefined“)
   document.getElementById("levelSel").value=LVL.id;
-  document.getElementById("levelSel").title=LVL.desc; // na úzkém displeji je popis skrytý
+  document.getElementById("levelSel").title=LVL.desc||LVL.name; // na úzkém displeji je popis skrytý
   render();
   setStatus("Vyber kartičku a klikni do rozvrhu (nebo ji přetáhni).");
   if(doAutoload!==false) ready.then(()=>{ if(LVL===cur) loadAutosave(); });
@@ -1943,20 +1943,34 @@ const GOAL_TYPES={ // typ cíle → povinné parametry v p
   all_placed:[], subject_time:["subject"], subject_day:["subject","day"], subject_week:["subject","week"],
   teacher_free_day:["teacher"], teacher_only_week:["teacher","week"], teacher_transition_gap:["teacher"],
   teacher_time:["teacher"], class_no_gaps:["cls"], max_per_day:["max"], lunch_break:["cls","period"] };
+// Level ze sdíleného odkazu (#l=) je cizí vstup: kromě tvaru hlídáme i typy a meze.
+// Id kartičky slouží jako klíč objektu placements — „__proto__“ by mu přepsal prototyp
+// a „toString“ či „constructor“ by kartičku hlásily jako položenou (all_placed zadarmo).
+const RESERVED_KEY=k=>Object.prototype.hasOwnProperty.call(Object.prototype,k);
+const ID_RE=/^[\w-]{1,40}$/;
+const isText=(v,max)=>typeof v==="string"&&v.trim()!==""&&v.length<=max;
+const LIMITS={cards:300,goals:60,text:60,name:80,desc:400,label:200}; // l7 má 80 kartiček
 function validateLevel(o){
   const errs=[];
-  if(!o||typeof o!=="object") return ["Není to objekt."];
-  if(!o.id||!/^[\w-]+$/.test(o.id)) errs.push("Chybí/špatné id (jen písmena, čísla, - a _).");
+  if(!o||typeof o!=="object"||Array.isArray(o)) return ["Není to objekt."];
+  if(typeof o.id!=="string"||!ID_RE.test(o.id)||RESERVED_KEY(o.id)) errs.push("Chybí/špatné id (jen písmena, čísla, - a _, nejvýš 40 znaků).");
   if(LEVELS.some(l=>l.id===o.id&&!l.custom)) errs.push("id „"+o.id+"“ koliduje s vestavěným levelem.");
-  if(!o.name) errs.push("Chybí name.");
-  if(!Array.isArray(o.weeks)||o.weeks.length<1||o.weeks.length>2) errs.push("weeks musí být pole 1–2 názvů týdnů.");
+  if(!isText(o.name,LIMITS.name)) errs.push("Chybí name (text do "+LIMITS.name+" znaků).");
+  if(o.desc!==undefined&&(typeof o.desc!=="string"||o.desc.length>LIMITS.desc)) errs.push("desc musí být text do "+LIMITS.desc+" znaků.");
+  if(!Array.isArray(o.weeks)||o.weeks.length<1||o.weeks.length>2||!o.weeks.every(w=>isText(w,20))) errs.push("weeks musí být pole 1–2 názvů týdnů.");
   if(!Number.isInteger(o.periods)||o.periods<1||o.periods>12) errs.push("periods musí být celé číslo 1–12.");
+  if(o.breakWindow!==undefined){ const b=o.breakWindow;
+    if(!Array.isArray(b)||b.length!==2||!b.every(Number.isInteger)||b[0]<1||b[0]>b[1]||(Number.isInteger(o.periods)&&b[1]>o.periods))
+      errs.push("breakWindow musí být [od, do] — celá čísla hodin v rozsahu dne."); }
   if(!Array.isArray(o.cards)||!o.cards.length) errs.push("cards musí být neprázdné pole.");
+  else if(o.cards.length>LIMITS.cards) errs.push("cards: nejvýš "+LIMITS.cards+" kartiček.");
   else{
     const ids=new Set();
     o.cards.forEach((c,i)=>{
-      ["id","class","subject","teacher","room","building"].forEach(k=>{ if(!c||!c[k]) errs.push("cards["+i+"]: chybí "+k+"."); });
-      if(c&&c.id){ if(ids.has(c.id)) errs.push("cards["+i+"]: duplicitní id „"+c.id+"“."); ids.add(c.id); }
+      if(!c||typeof c!=="object"){ errs.push("cards["+i+"]: není objekt."); return; }
+      ["class","subject","teacher","room","building"].forEach(k=>{ if(!isText(c[k],LIMITS.text)) errs.push("cards["+i+"]: chybí "+k+" (text do "+LIMITS.text+" znaků)."); });
+      if(typeof c.id!=="string"||!ID_RE.test(c.id)||RESERVED_KEY(c.id)) errs.push("cards["+i+"]: chybí/špatné id (jen písmena, čísla, - a _).");
+      else{ if(ids.has(c.id)) errs.push("cards["+i+"]: duplicitní id „"+c.id+"“."); ids.add(c.id); }
       if(c&&!["IT","EP","ELE","STR","BRK"].includes(c.field)) errs.push("cards["+i+"]: field musí být IT | EP | ELE | STR | BRK (pauza).");
       if(c&&c.kind&&c.kind!=="break") errs.push("cards["+i+"]: kind smí být jen \"break\".");
       if(c&&c.field==="BRK"&&!isBreak(c)) errs.push("cards["+i+"]: field BRK patří jen kartičce s kind:\"break\".");
@@ -1967,7 +1981,8 @@ function validateLevel(o){
       if(rb[c.room]&&rb[c.room]!==c.building) errs.push("cards["+i+"]: učebna "+c.room+" je jednou v "+rb[c.room]+", jinde v "+c.building+".");
       rb[c.room]=c.building;
     }});
-    if(o.given&&Array.isArray(o.cards)) for(const id in o.given){
+    if(o.given!==undefined&&(!o.given||typeof o.given!=="object"||Array.isArray(o.given))) errs.push("given musí být objekt {idKartičky:{w,d,p}}.");
+    else if(o.given) for(const id in o.given){
       const c=o.cards.find(x=>x&&x.id===id), pl=o.given[id];
       if(!c){ errs.push("given: neznámá karta „"+id+"“."); continue; }
       if(!pl||!Number.isInteger(pl.w)||pl.w<0||pl.w>=o.weeks.length
@@ -1976,16 +1991,26 @@ function validateLevel(o){
     }
   }
   if(!Array.isArray(o.goals)||!o.goals.length) errs.push("goals musí být neprázdné pole (bez cílů je level okamžitá výhra).");
+  else if(o.goals.length>LIMITS.goals) errs.push("goals: nejvýš "+LIMITS.goals+" cílů.");
   else o.goals.forEach((g,i)=>{
-    if(!g||!GOAL_TYPES[g.type]){ errs.push("goals["+i+"]: neznámý type „"+(g&&g.type)+"“. Povolené: "+Object.keys(GOAL_TYPES).join(", ")+"."); return; }
-    if(!g.label) errs.push("goals["+i+"]: chybí label.");
+    if(!g||typeof g!=="object"||!Object.prototype.hasOwnProperty.call(GOAL_TYPES,g.type)){ errs.push("goals["+i+"]: neznámý type „"+(g&&g.type)+"“. Povolené: "+Object.keys(GOAL_TYPES).join(", ")+"."); return; }
+    if(!isText(g.label,LIMITS.label)) errs.push("goals["+i+"]: chybí label.");
+    if(g.p!==undefined&&(!g.p||typeof g.p!=="object"||Array.isArray(g.p))){ errs.push("goals["+i+"]: p musí být objekt."); return; }
     const P=g.p||{}; // chybějící parametry = cíl je tiše triviální nebo nesplnitelný — radši chyba
     GOAL_TYPES[g.type].forEach(k=>{ if(P[k]===undefined) errs.push("goals["+i+"] ("+g.type+"): chybí parametr p."+k+"."); });
+    // typy parametrů: evalGoal porovnává přes ===, takže "3" místo 3 by cíl tiše znemožnil
+    const nWeeks=Array.isArray(o.weeks)?o.weeks.length:2, nPer=Number.isInteger(o.periods)?o.periods:12;
+    const intIn=(k,lo,hi)=>{ if(P[k]!==undefined&&(!Number.isInteger(P[k])||P[k]<lo||P[k]>hi)) errs.push("goals["+i+"]: p."+k+" musí být celé číslo "+lo+"–"+hi+"."); };
+    ["subject","teacher","cls"].forEach(k=>{ if(P[k]!==undefined&&typeof P[k]!=="string") errs.push("goals["+i+"]: p."+k+" musí být text."); });
+    intIn("day",0,DAYS.length-1); intIn("week",0,nWeeks-1); intIn("max",0,nPer);
+    ["period","minPeriod","maxPeriod","exact"].forEach(k=>intIn(k,1,nPer));
+    [["forbidDays",0,DAYS.length-1],["forbidPeriods",1,nPer]].forEach(([k,lo,hi])=>{
+      if(P[k]!==undefined&&(!Array.isArray(P[k])||!P[k].every(v=>Number.isInteger(v)&&v>=lo&&v<=hi))) errs.push("goals["+i+"]: p."+k+" musí být pole celých čísel "+lo+"–"+hi+"."); });
     if(g.type==="max_per_day" && P.cls===undefined && P.teacher===undefined) errs.push("goals["+i+"]: max_per_day potřebuje p.cls nebo p.teacher.");
     if(g.type==="subject_time" && P.maxPeriod===undefined && P.minPeriod===undefined && P.exact===undefined) errs.push("goals["+i+"]: subject_time potřebuje maxPeriod, minPeriod nebo exact.");
     if(g.type==="teacher_time" && P.maxPeriod===undefined && P.minPeriod===undefined && !P.forbidPeriods && !P.forbidDays) errs.push("goals["+i+"]: teacher_time potřebuje aspoň jedno omezení.");
   });
-  if(o.carryFrom&&(o.carryFrom===o.id||!LEVELS.some(l=>l.id===o.carryFrom))) errs.push("carryFrom: level „"+o.carryFrom+"“ neexistuje nebo odkazuje sám na sebe.");
+  if(o.carryFrom!==undefined&&(typeof o.carryFrom!=="string"||o.carryFrom===o.id||!LEVELS.some(l=>l.id===o.carryFrom))) errs.push("carryFrom: level „"+o.carryFrom+"“ neexistuje nebo odkazuje sám na sebe.");
   return errs;
 }
 function saveCustoms(){ if(Store) Store.set("customLevels", JSON.stringify(LEVELS.filter(l=>l.custom))); }
