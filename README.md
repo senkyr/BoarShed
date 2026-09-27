@@ -21,9 +21,10 @@ mobilní i desktopové rozhraní. Hraje se na **https://senkyr.github.io/BoarShe
 ## Upozornění
 
 - **Push do `main` = okamžitý redeploy** na https://senkyr.github.io/BoarShed/.
-  Klávesnicové ovládání z revize 24. 9. 2026 nikdo nevyzkoušel v prohlížeči.
-  Před sloučením do `main` proto ručně ověř, že Tab → Enter → Tab → Enter položí
-  kartičku a fokus po překreslení neuteče na začátek stránky.
+  Klávesnicové ovládání (revize 24. 9. 2026) ověřeno v Chrome 27. 9. 2026:
+  Tab → Enter zvedne kartičku a fokus skočí na první povolenou buňku, Tab po
+  buňkách, Enter položí, Delete vrátí do zásobníku, Esc zruší zvednutí; fokus
+  po překreslení zůstává na kartičce. Dotyk na reálném mobilu zůstává neotestovaný.
 - **Vlastní levely mají od revize 24. 9. 2026 přísnější validaci:** id jen
   z `A–Z a–z 0–9 _ -` do 40 znaků, texty s limitem délky, číselné parametry
   cílů jako čísla (ne `"3"`), nejvýš 300 kartiček a 60 cílů. Dřív uložený

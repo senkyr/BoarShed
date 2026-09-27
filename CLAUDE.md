@@ -403,8 +403,8 @@ ve všech šířkách, lišta na jeden řádek).
 Klávesnicové ovládání (revize 24. 9. 2026): kartičky v zásobníku i v rozvrhu, drop zóny a hlavička požadavků
 mají `tabindex`/`role="button"`/`aria-label` (helper `kbdButton`); Enter/mezerník zvedne či položí, Delete/Backspace
 vrátí položenou kartičku do zásobníku, Esc zruší výběr. Protože `render()` staví DOM znovu, akce nastaví
-`KBD_FOCUS` a `applyKbdFocus()` na konci renderu přesune fokus (na první drop zónu / na kartičku). Ověřit
-v prohlížeči: Tab → Enter → Tab → Enter položí kartičku; fokus nesmí po překreslení utéct na začátek stránky.
+`KBD_FOCUS` a `applyKbdFocus()` na konci renderu přesune fokus (na první drop zónu / na kartičku). Ověřeno
+v Chrome 27. 9. 2026 (zvednutí, Tab po buňkách, položení, Delete, Esc; fokus po překreslení drží).
 
 Obsah je hotový „naslepo": kampaň 7 levelů (l1–l7, viz SVĚT KAMPANĚ výš), obtížnost
 vybalancovaná simulacemi a ověřená ručním odehráním přes UI bez řešiče (l1–l4 + l6
